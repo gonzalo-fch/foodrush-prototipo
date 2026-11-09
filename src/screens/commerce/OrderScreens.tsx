@@ -10,7 +10,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../../components/AppShell'
 import { PrimaryButton } from '../../components/Buttons'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -22,10 +22,13 @@ import { useCommerceStore } from '../../store/CommerceStore'
 import type { Order, OrderStatus } from '../../types'
 import { ErrorStatePage } from '../ErrorStatePage'
 
-const saleFilters: Array<{ id: 'todas' | 'nuevas' | 'alertas'; label: string }> = [
+type SaleFilter = 'todas' | 'pendientes' | 'ventas' | 'devoluciones'
+
+const saleFilters: Array<{ id: SaleFilter; label: string }> = [
   { id: 'todas', label: 'Todas' },
-  { id: 'nuevas', label: 'Nuevas Ventas' },
-  { id: 'alertas', label: 'Alertas' },
+  { id: 'pendientes', label: 'Pendientes' },
+  { id: 'ventas', label: 'Ventas' },
+  { id: 'devoluciones', label: 'Devoluciones' },
 ]
 
 function relativeTime(iso?: string) {
@@ -54,18 +57,29 @@ function relativeTime(iso?: string) {
 export function SalesPage() {
   const { orders } = useAppStore()
   const { storeId } = useCommerceStore()
-  const [filter, setFilter] = useState<'todas' | 'nuevas' | 'alertas'>('todas')
+  const [searchParams] = useSearchParams()
+  const [filter, setFilter] = useState<SaleFilter>(
+    searchParams.get('filtro') === 'devoluciones' ? 'devoluciones' : 'todas',
+  )
 
   const filtered = useMemo(() => {
     const sorted = orders
       .filter((order) => order.storeId === storeId)
       .sort(
-      (a, b) =>
-        new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
-    )
+        (a, b) =>
+          new Date(b.createdAt ?? 0).getTime() -
+          new Date(a.createdAt ?? 0).getTime(),
+      )
 
-    if (filter === 'nuevas') return sorted.filter((order) => order.status === 'pendiente')
-    if (filter === 'alertas') return sorted.filter((order) => order.status === 'cancelado')
+    if (filter === 'pendientes') {
+      return sorted.filter((order) => order.status === 'pendiente')
+    }
+    if (filter === 'ventas') {
+      return sorted.filter((order) => order.status === 'retirado')
+    }
+    if (filter === 'devoluciones') {
+      return sorted.filter((order) => order.status === 'cancelado')
+    }
     return sorted
   }, [filter, orders, storeId])
 
@@ -73,19 +87,19 @@ export function SalesPage() {
     <div>
       <PageHeader title="Ventas" backTo="/comercio/inicio" bordered={false} />
 
-      <div className="flex border-b border-slate-200 px-4">
+      <div className="no-scrollbar flex overflow-x-auto border-b border-slate-200 px-4">
         {saleFilters.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setFilter(tab.id)}
-            className={`relative flex-1 py-3 text-[17px] font-bold ${
+            className={`relative shrink-0 px-3 py-3 text-[15px] font-bold ${
               filter === tab.id ? 'text-ink' : 'text-slate-500'
             }`}
           >
             {tab.label}
             {filter === tab.id && (
-              <span className="absolute inset-x-0 -bottom-px mx-auto h-[3px] w-20 bg-brand-strong" />
+              <span className="absolute inset-x-2 -bottom-px h-[3px] rounded-full bg-brand-strong" />
             )}
           </button>
         ))}
@@ -137,15 +151,15 @@ function SaleRow({ order, highlighted }: { order: Order; highlighted: boolean })
     order.status === 'pendiente'
       ? 'Nueva Venta'
       : order.status === 'retirado'
-        ? `Pedido #${order.id} Cerrado`
-        : `Pedido #${order.id} Cancelado`
+        ? `Venta #${order.id} Entregada`
+        : `Devolución #${order.id}`
 
   const body =
     order.status === 'pendiente'
       ? `Total: ${formatCLP(order.total)}\nVenta de ${order.customer}. Pedido #${order.id}.`
       : order.status === 'retirado'
         ? `El pedido de ${order.customer} ha sido completado.`
-        : 'El cliente ha cancelado el pedido.'
+        : `Pedido cancelado por ${order.customer}.`
 
   return (
     <Link
@@ -205,8 +219,8 @@ const statusMeta: Record<
 const orderFilters: Array<{ id: 'todos' | OrderStatus; label: string }> = [
   { id: 'todos', label: 'Todos' },
   { id: 'pendiente', label: 'Pendientes' },
-  { id: 'retirado', label: 'Retirados' },
-  { id: 'cancelado', label: 'Cancelados' },
+  { id: 'retirado', label: 'Entregados' },
+  { id: 'cancelado', label: 'Devoluciones' },
 ]
 
 export function OrdersPage() {
@@ -397,10 +411,19 @@ export function OrderDetailPage() {
         {order.status === 'pendiente' ? (
           <div className="mt-5 space-y-3">
             <PrimaryButton
-              onClick={() => {
-                completeOrder(order.id)
-                showToast('Pedido marcado como entregado')
-                navigate('/comercio/pedidos')
+              onClick={async () => {
+                try {
+                  await completeOrder(order.id)
+                  showToast('Pedido marcado como entregado; inventario actualizado')
+                  navigate('/comercio/pedidos')
+                } catch (requestError) {
+                  showToast(
+                    requestError instanceof Error
+                      ? requestError.message
+                      : 'No se pudo entregar el pedido',
+                    'error',
+                  )
+                }
               }}
             >
               Marcar como entregado
@@ -429,18 +452,27 @@ export function OrderDetailPage() {
         title="Cancelar pedido"
         message={
           <>
-            Se cancelará el pedido <strong className="text-ink">#{order.id}</strong> y se repondrá el
-            stock de sus productos. Esta acción no se puede deshacer.
+            Se cancelará el pedido <strong className="text-ink">#{order.id}</strong> y se liberará la
+            reserva de stock de sus productos. Esta acción no se puede deshacer.
           </>
         }
         confirmLabel="Cancelar pedido"
         cancelLabel="Volver"
         onClose={() => setConfirmCancel(false)}
-        onConfirm={() => {
-          cancelOrder(order.id)
-          showToast('Pedido cancelado y stock repuesto', 'info')
-          setConfirmCancel(false)
-          navigate('/comercio/pedidos')
+        onConfirm={async () => {
+          try {
+            await cancelOrder(order.id)
+            showToast('Pedido cancelado y reserva liberada', 'info')
+            setConfirmCancel(false)
+            navigate('/comercio/pedidos')
+          } catch (requestError) {
+            showToast(
+              requestError instanceof Error
+                ? requestError.message
+                : 'No se pudo cancelar el pedido',
+              'error',
+            )
+          }
         }}
       />
     </AppShell>

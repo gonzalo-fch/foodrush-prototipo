@@ -23,9 +23,9 @@ import { PageHeader } from '../../components/PageHeader'
 import { Toggle } from '../../components/Toggle'
 import { useToast } from '../../components/ToastProvider'
 import { formatCLP } from '../../lib/format'
+import { ordersInRange } from '../../lib/orders'
 import { useAppStore } from '../../store/AppStore'
 import { useCommerceStore } from '../../store/CommerceStore'
-import type { Order } from '../../types'
 
 function startOfDay(date: Date) {
   const value = new Date(date)
@@ -39,14 +39,6 @@ function periodStart(period: 'hoy' | 'semana' | 'mes') {
   const start = startOfDay(now)
   start.setDate(start.getDate() - (days - 1))
   return start
-}
-
-function ordersInRange(orders: Order[], start: Date, end: Date) {
-  return orders.filter((order) => {
-    if (!order.createdAt) return false
-    const created = new Date(order.createdAt)
-    return created >= start && created <= end
-  })
 }
 
 function delta(current: number, previous: number) {
@@ -67,11 +59,25 @@ export function CommerceHomePage() {
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
 
-  const salesToday = ordersInRange(storeOrders, today, tomorrow).reduce(
-    (sum, order) => sum + order.total,
-    0,
+  const salesToday = ordersInRange(
+    storeOrders,
+    today,
+    tomorrow,
+    'retirado',
+  ).reduce((sum, order) => sum + order.total, 0)
+  const salesYesterday = ordersInRange(
+    storeOrders,
+    yesterday,
+    today,
+    'retirado',
+  ).reduce((sum, order) => sum + order.total, 0)
+  const returnsToday = ordersInRange(
+    storeOrders,
+    today,
+    tomorrow,
+    'cancelado',
   )
-  const salesYesterday = ordersInRange(storeOrders, yesterday, today).reduce(
+  const returnsAmountToday = returnsToday.reduce(
     (sum, order) => sum + order.total,
     0,
   )
@@ -103,7 +109,7 @@ export function CommerceHomePage() {
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-[16px] font-medium text-ink">Ventas de Hoy</p>
+            <p className="text-[16px] font-medium text-ink">Ventas Entregadas Hoy</p>
             <p className="mt-1 text-[30px] font-extrabold leading-none text-[#333333]">
               {formatCLP(salesToday)}
             </p>
@@ -124,6 +130,24 @@ export function CommerceHomePage() {
             <p className="mt-3 text-[15px] font-bold text-brand">Ver todos</p>
           </Link>
         </div>
+
+        <Link
+          to="/comercio/ventas?filtro=devoluciones"
+          className="mt-3 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
+        >
+          <div>
+            <p className="text-[16px] font-medium text-ink">Devoluciones de Hoy</p>
+            <p className="mt-1 text-[24px] font-extrabold leading-none text-[#333333]">
+              {returnsToday.length}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[16px] font-extrabold text-red-500">
+              {formatCLP(returnsAmountToday)}
+            </p>
+            <p className="mt-1 text-[13px] font-semibold text-brand">Ver devoluciones</p>
+          </div>
+        </Link>
 
         <h2 className="mt-7 text-[25px] font-extrabold text-ink">Gestiona tu Tienda</h2>
 
@@ -206,8 +230,30 @@ export function DashboardPage() {
   const days = period === 'hoy' ? 1 : period === 'semana' ? 7 : 30
   previousStart.setDate(previousStart.getDate() - days)
 
-  const currentOrders = ordersInRange(storeOrders, currentStart, now)
-  const previousOrders = ordersInRange(storeOrders, previousStart, previousEnd)
+  const currentOrders = ordersInRange(
+    storeOrders,
+    currentStart,
+    now,
+    'retirado',
+  )
+  const previousOrders = ordersInRange(
+    storeOrders,
+    previousStart,
+    previousEnd,
+    'retirado',
+  )
+  const currentReturns = ordersInRange(
+    storeOrders,
+    currentStart,
+    now,
+    'cancelado',
+  )
+  const previousReturns = ordersInRange(
+    storeOrders,
+    previousStart,
+    previousEnd,
+    'cancelado',
+  )
 
   const total = currentOrders.reduce((sum, order) => sum + order.total, 0)
   const previousTotal = previousOrders.reduce((sum, order) => sum + order.total, 0)
@@ -217,20 +263,28 @@ export function DashboardPage() {
   const previousAverage = previousCount > 0 ? Math.round(previousTotal / previousCount) : 0
   const net = Math.round(total * 0.97)
   const previousNet = Math.round(previousTotal * 0.97)
+  const returnsTotal = currentReturns.reduce(
+    (sum, order) => sum + order.total,
+    0,
+  )
+  const previousReturnsTotal = previousReturns.reduce(
+    (sum, order) => sum + order.total,
+    0,
+  )
 
   const stats = [
     {
-      label: 'Ventas Totales',
+      label: 'Ventas Entregadas',
       value: formatCLP(total),
       delta: delta(total, previousTotal),
     },
     {
-      label: 'N° de Pedidos',
+      label: 'Pedidos Entregados',
       value: String(count),
       delta: delta(count, previousCount),
     },
     {
-      label: 'Venta Promedio',
+      label: 'Ticket Promedio',
       value: formatCLP(average),
       delta: delta(average, previousAverage),
     },
@@ -326,6 +380,33 @@ export function DashboardPage() {
             </div>
           ))}
         </div>
+
+        <Link
+          to="/comercio/ventas?filtro=devoluciones"
+          className="mt-5 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
+        >
+          <div>
+            <h2 className="text-[19px] font-extrabold text-ink">Devoluciones del Período</h2>
+            <p className="mt-1 text-[14px] font-medium text-slate-500">
+              {currentReturns.length} {currentReturns.length === 1 ? 'pedido cancelado' : 'pedidos cancelados'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[20px] font-extrabold text-red-500">
+              {formatCLP(returnsTotal)}
+            </p>
+            <p
+              className={`mt-1 text-[13px] font-bold ${
+                delta(returnsTotal, previousReturnsTotal) > 0
+                  ? 'text-red-500'
+                  : 'text-green-600'
+              }`}
+            >
+              {delta(returnsTotal, previousReturnsTotal) > 0 ? '+' : ''}
+              {delta(returnsTotal, previousReturnsTotal)}%
+            </p>
+          </div>
+        </Link>
 
         <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="text-[19px] font-extrabold text-ink">Ventas por Hora</h2>
