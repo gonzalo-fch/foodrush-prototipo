@@ -11,14 +11,17 @@ import {
 } from './domain.js'
 import { createSeedState } from './seed.js'
 
-const dataDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '.data')
-const dataFile = path.join(dataDir, 'state.json')
+const defaultDataFile = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '.data',
+  'state.json',
+)
 
 function clone(value) {
   return structuredClone(value)
 }
 
-function loadState() {
+function loadState(dataFile) {
   try {
     const raw = fs.readFileSync(dataFile, 'utf8')
     const parsed = JSON.parse(raw)
@@ -39,8 +42,9 @@ function storeName(state, storeId) {
   return state.stores.find((store) => store.id === storeId)?.name ?? 'Comercio'
 }
 
-export function createFileRepository() {
-  const state = loadState()
+export function createFileRepository({ dataFile = defaultDataFile } = {}) {
+  const dataDir = path.dirname(dataFile)
+  const state = loadState(dataFile)
 
   function persist() {
     fs.mkdirSync(dataDir, { recursive: true })

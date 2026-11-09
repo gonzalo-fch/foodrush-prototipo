@@ -1,5 +1,7 @@
 # FoodRush
 
+![CI](https://github.com/gonzalo-fch/foodrush-prototipo/actions/workflows/ci.yml/badge.svg)
+
 Prototipo web responsive para consultar catálogos, registrar compras ficticias y administrar productos e inventario de establecimientos físicos.
 
 ## Stack
@@ -84,6 +86,17 @@ npm start
 ```
 
 El servidor Express sirve `dist/` y la API en el puerto configurado (`PORT`, por defecto `3001`).
+
+## Pruebas
+
+```bash
+npm test
+npm run test:coverage
+```
+
+- Plan de pruebas: `docs/PLAN_DE_PRUEBAS.md`
+- Registro de ejecución: `docs/REGISTRO_DE_PRUEBAS.md`
+- Integración continua: `.github/workflows/ci.yml`
 
 ## Cuentas demo
 
