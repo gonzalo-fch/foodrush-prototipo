@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AppShell } from '../../components/AppShell'
 import { PrimaryButton } from '../../components/Buttons'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PageHeader } from '../../components/PageHeader'
@@ -84,10 +83,10 @@ export function SalesPage() {
   }, [filter, orders, storeId])
 
   return (
-    <div>
+    <div className="lg:mx-auto lg:w-full lg:max-w-[1000px]">
       <PageHeader title="Ventas" backTo="/comercio/inicio" bordered={false} />
 
-      <div className="no-scrollbar flex overflow-x-auto border-b border-slate-200 px-4">
+      <div className="no-scrollbar flex overflow-x-auto border-b border-slate-200 px-4 lg:px-0">
         {saleFilters.map((tab) => (
           <button
             key={tab.id}
@@ -242,10 +241,10 @@ export function OrdersPage() {
   )
 
   return (
-    <div>
+    <div className="lg:mx-auto lg:w-full lg:max-w-[1100px]">
       <PageHeader title="Pedidos" backTo="/comercio/inicio" bordered={false} />
 
-      <div className="no-scrollbar flex gap-1 overflow-x-auto border-b border-slate-200 px-4">
+      <div className="no-scrollbar flex gap-1 overflow-x-auto border-b border-slate-200 px-4 lg:px-0">
         {orderFilters.map((item) => (
           <button
             key={item.id}
@@ -263,13 +262,13 @@ export function OrdersPage() {
         ))}
       </div>
 
-      <main className="space-y-3 px-4 pt-4">
+      <main className="grid gap-3 px-4 pt-4 lg:grid-cols-2 lg:px-0 lg:pt-0">
         {filtered.map((order) => (
           <OrderCard key={order.id} order={order} />
         ))}
 
         {filtered.length === 0 && (
-          <div className="rounded-2xl bg-white/60 px-6 py-8 text-center">
+          <div className="rounded-2xl bg-white/60 px-6 py-8 text-center lg:col-span-2">
             <p className="text-[15px] font-bold text-ink">No hay pedidos en este estado</p>
             <p className="mt-1 text-[13px] font-medium text-slate-500">
               Los pedidos aparecerán aquí cuando los clientes compren.
@@ -343,10 +342,11 @@ export function OrderDetailPage() {
   const StatusIcon = meta.icon
 
   return (
-    <AppShell>
+    <>
+      <div className="mx-auto w-full max-w-[900px]">
       <PageHeader title={`Pedido #${order.id}`} backTo="/comercio/pedidos" bordered={false} />
 
-      <main className="px-4 pb-10 pt-4">
+      <main className="px-4 pb-10 pt-4 lg:px-0 lg:pt-0">
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <h1 className="text-[20px] font-extrabold text-ink">{order.customer}</h1>
@@ -475,7 +475,8 @@ export function OrderDetailPage() {
           }
         }}
       />
-    </AppShell>
+      </div>
+    </>
   )
 }
 
@@ -498,10 +499,10 @@ export function QrScannerPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader title="Escanear QR de Compra" backTo="/comercio/inicio" bordered={false} />
 
-      <div className="relative">
+      <div className="relative mx-auto w-full max-w-[900px]">
         <button
           type="button"
           onClick={simulateScan}
@@ -511,18 +512,18 @@ export function QrScannerPage() {
           <img
             src="/commerce/qr-scan-bg.png"
             alt="Escanear QR de compra"
-            className="h-[calc(100dvh-56px)] w-full object-cover"
+            className="h-[calc(100dvh-56px)] w-full object-cover lg:h-[680px] lg:rounded-2xl"
           />
         </button>
 
         <button
           type="button"
           onClick={simulateScan}
-          className="absolute bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-5 py-3 text-[14px] font-extrabold text-brand-strong shadow-lg"
+          className="absolute bottom-[104px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-5 py-3 text-[14px] font-extrabold text-brand-strong shadow-lg lg:bottom-7"
         >
           Simular escaneo de pedido pendiente
         </button>
       </div>
-    </AppShell>
+    </>
   )
 }

@@ -7,7 +7,6 @@ import {
   type ChangeEvent,
 } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AppShell } from '../../components/AppShell'
 import { PrimaryButton } from '../../components/Buttons'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Field, SelectField } from '../../components/Field'
@@ -64,7 +63,7 @@ export function ProductManagementPage() {
     <div>
       <PageHeader title="Gestión de Productos" backTo="/comercio/inicio" />
 
-      <main className="px-4 pb-28 pt-4">
+      <main className="px-4 pb-28 pt-4 lg:px-0 lg:pb-0 lg:pt-0">
         <label className="flex h-12 items-center gap-3 rounded-xl bg-white px-4 shadow-sm">
           <Search size={21} className="text-slate-400" />
           <input
@@ -83,7 +82,7 @@ export function ProductManagementPage() {
           Movimientos de inventario
         </Link>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           {filtered.map((product) => (
             <article key={product.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <div className="flex gap-3">
@@ -174,7 +173,7 @@ export function ProductManagementPage() {
           ))}
 
           {filtered.length === 0 && (
-            <div className="rounded-2xl bg-white/60 px-6 py-8 text-center">
+            <div className="rounded-2xl bg-white/60 px-6 py-8 text-center lg:col-span-2">
               <p className="text-[15px] font-bold text-ink">No encontramos productos</p>
               <p className="mt-1 text-[13px] font-medium text-slate-500">
                 Prueba con otra búsqueda.
@@ -184,7 +183,7 @@ export function ProductManagementPage() {
         </div>
       </main>
 
-      <div className="pointer-events-none fixed bottom-[92px] left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4">
+      <div className="pointer-events-none fixed bottom-[92px] left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4 lg:bottom-8 lg:left-auto lg:right-8 lg:w-auto lg:max-w-none lg:translate-x-0 lg:px-0">
         <Link
           to="/comercio/productos/nuevo"
           aria-label="Agregar producto"
@@ -325,10 +324,10 @@ export function AddProductPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader title="Agregar Nuevo Producto" backTo="/comercio/productos" />
 
-      <form onSubmit={handleSubmit} className="px-4 pb-10 pt-5">
+      <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[760px] px-4 pb-10 pt-5 lg:px-0">
         <input
           ref={fileRef}
           type="file"
@@ -448,7 +447,7 @@ export function AddProductPage() {
           </Link>
         </div>
       </form>
-    </AppShell>
+    </>
   )
 }
 
@@ -570,10 +569,10 @@ export function EditProductPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader title="Editar Producto" backTo="/comercio/productos" />
 
-      <form onSubmit={handleSubmit} className="pb-10">
+      <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[760px] pb-10">
         <input
           ref={fileRef}
           type="file"
@@ -713,6 +712,6 @@ export function EditProductPage() {
           }
         }}
       />
-    </AppShell>
+    </>
   )
 }

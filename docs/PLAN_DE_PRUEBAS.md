@@ -160,6 +160,7 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PM-11 | Buscador de comercios | Abrir “Buscar otra ubicación” y filtrar | Listado con imagen, nombre, dirección y filtro |
 | PM-12 | Pago simulado | Abrir formulario de tarjeta | Datos de prueba precargados y aviso visible |
 | PM-13 | Ventas y devoluciones | Revisar Home y Dashboard | Ventas entregadas y devoluciones separadas |
+| PM-14 | Layout escritorio del comercio | Abrir el panel a 1440 px y a 390 px | Sidebar en escritorio, navegación inferior en móvil |
 
 ## 7. Datos de prueba
 

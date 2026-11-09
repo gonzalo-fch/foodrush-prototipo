@@ -15,7 +15,6 @@ import {
 } from 'lucide-react'
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AppShell } from '../../components/AppShell'
 import { PrimaryButton } from '../../components/Buttons'
 import { Field } from '../../components/Field'
 import { Modal } from '../../components/Modal'
@@ -85,7 +84,7 @@ export function CommerceHomePage() {
 
   return (
     <div>
-      <header className="flex items-center gap-3 border-b border-slate-200/70 px-4 py-3">
+      <header className="flex items-center gap-3 border-b border-slate-200/70 px-4 py-3 lg:hidden">
         <img
           src="/commerce/logo-orange.png"
           alt={businessName}
@@ -104,10 +103,10 @@ export function CommerceHomePage() {
         </span>
       </header>
 
-      <main className="px-4 pt-5">
+      <main className="px-4 pt-5 lg:px-0 lg:pt-0">
         <h2 className="text-[25px] font-extrabold text-ink">Resumen del Día</h2>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="text-[16px] font-medium text-ink">Ventas Entregadas Hoy</p>
             <p className="mt-1 text-[30px] font-extrabold leading-none text-[#333333]">
@@ -129,29 +128,27 @@ export function CommerceHomePage() {
             </p>
             <p className="mt-3 text-[15px] font-bold text-brand">Ver todos</p>
           </Link>
+          <Link
+            to="/comercio/ventas?filtro=devoluciones"
+            className="col-span-2 rounded-2xl bg-white p-4 shadow-sm lg:col-span-1"
+          >
+            <div className="flex items-center justify-between lg:block">
+              <div>
+                <p className="text-[16px] font-medium text-ink">Devoluciones de Hoy</p>
+                <p className="mt-1 text-[30px] font-extrabold leading-none text-[#333333]">
+                  {returnsToday.length}
+                </p>
+              </div>
+              <p className="text-[15px] font-bold text-red-500 lg:mt-3">
+                {formatCLP(returnsAmountToday)}
+              </p>
+            </div>
+          </Link>
         </div>
-
-        <Link
-          to="/comercio/ventas?filtro=devoluciones"
-          className="mt-3 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
-        >
-          <div>
-            <p className="text-[16px] font-medium text-ink">Devoluciones de Hoy</p>
-            <p className="mt-1 text-[24px] font-extrabold leading-none text-[#333333]">
-              {returnsToday.length}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[16px] font-extrabold text-red-500">
-              {formatCLP(returnsAmountToday)}
-            </p>
-            <p className="mt-1 text-[13px] font-semibold text-brand">Ver devoluciones</p>
-          </div>
-        </Link>
 
         <h2 className="mt-7 text-[25px] font-extrabold text-ink">Gestiona tu Tienda</h2>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <HomeCard
             to="/comercio/productos"
             icon={<UtensilsCrossed size={30} className="text-brand-strong" />}
@@ -186,7 +183,7 @@ export function CommerceHomePage() {
         </div>
       </main>
 
-      <div className="pointer-events-none fixed bottom-[92px] left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4">
+      <div className="pointer-events-none fixed bottom-[92px] left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4 lg:hidden">
         <Link
           to="/comercio/escanear"
           aria-label="Escanear QR"
@@ -346,7 +343,7 @@ export function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" backTo="/comercio/inicio" />
 
-      <main className="px-4 pt-4">
+      <main className="px-4 pt-4 lg:px-0 lg:pt-0">
         <div className="grid grid-cols-3 rounded-xl bg-[#cbd8e6] p-1">
           {(['hoy', 'semana', 'mes'] as const).map((item) => (
             <button
@@ -362,7 +359,7 @@ export function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-[15px] font-medium text-slate-500">{stat.label}</p>
@@ -408,7 +405,8 @@ export function DashboardPage() {
           </div>
         </Link>
 
-        <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+        <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:items-start">
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="text-[19px] font-extrabold text-ink">Ventas por Hora</h2>
           <p className="text-[14px] font-medium capitalize text-slate-500">{period}</p>
 
@@ -433,7 +431,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <h2 className="mt-6 text-[22px] font-extrabold text-ink">Productos Más Vendidos</h2>
+        <h2 className="mt-6 text-[22px] font-extrabold text-ink lg:mt-0">Productos Más Vendidos</h2>
 
         <div className="mt-4 space-y-3">
           {topProducts.map((product) => (
@@ -465,6 +463,7 @@ export function DashboardPage() {
               </p>
             </div>
           )}
+        </div>
         </div>
       </main>
     </div>
@@ -596,10 +595,10 @@ export function CommerceSettingsPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader title="Ajustes" backTo="/comercio/inicio" bordered={false} />
 
-      <main className="px-4 pb-10">
+      <main className="px-4 pb-10 lg:mx-auto lg:max-w-[900px] lg:px-0">
         <div className="flex flex-col items-center pt-4">
           <img
             src="/commerce/logo-red.png"
@@ -804,6 +803,6 @@ export function CommerceSettingsPage() {
           <PrimaryButton type="submit">Guardar horarios</PrimaryButton>
         </form>
       </Modal>
-    </AppShell>
+    </>
   )
 }

@@ -1,7 +1,6 @@
 import { PackagePlus, ShoppingBag, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AppShell } from '../../components/AppShell'
 import { PageHeader } from '../../components/PageHeader'
 import { useAppStore } from '../../store/AppStore'
 import { useCommerceStore } from '../../store/CommerceStore'
@@ -60,10 +59,10 @@ export function InventoryMovementsPage() {
   )
 
   return (
-    <AppShell>
+    <>
       <PageHeader title="Movimientos de Inventario" backTo="/comercio/productos" />
 
-      <main className="px-4 pt-4">
+      <main className="px-4 pt-4 lg:px-0 lg:pt-0">
         <div className="rounded-xl bg-[#dbe7f3] px-4 py-3 text-[14px] font-medium leading-snug text-slate-600">
           Cada venta descuenta stock y queda ligada al pedido que la originó.
         </div>
@@ -83,13 +82,13 @@ export function InventoryMovementsPage() {
           ))}
         </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
           {filtered.map((movement) => (
             <MovementCard key={movement.id} movement={movement} />
           ))}
 
           {filtered.length === 0 && (
-            <div className="rounded-2xl bg-white/60 px-6 py-8 text-center">
+            <div className="rounded-2xl bg-white/60 px-6 py-8 text-center lg:col-span-2">
               <p className="text-[15px] font-bold text-ink">No hay movimientos</p>
               <p className="mt-1 text-[13px] font-medium text-slate-500">
                 Prueba con otro filtro.
@@ -98,7 +97,7 @@ export function InventoryMovementsPage() {
           )}
         </div>
       </main>
-    </AppShell>
+    </>
   )
 }
 

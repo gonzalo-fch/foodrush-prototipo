@@ -93,6 +93,7 @@ Reporte generado en `coverage/index.html`.
 | PM-11 | Buscador de comercios | Listado con imagen, nombre y dirección; filtro por nombre | Aprobado |
 | PM-12 | Pago simulado | Formulario con datos de prueba y aviso de no ingresar datos reales | Aprobado |
 | PM-13 | Ventas y devoluciones | Home y dashboard muestran ventas entregadas y devoluciones por separado | Aprobado |
+| PM-14 | Layout escritorio comercio | A 1440 px se muestra sidebar y contenido ampliado; a 390 px se oculta y aparece navegación inferior | Aprobado |
 
 ## 6. Defectos encontrados y corregidos
 

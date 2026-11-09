@@ -97,6 +97,11 @@ El servidor Express sirve `dist/` y la API en el puerto configurado (`PORT`, por
 
 Guía completa de instalación, Firestore, Docker y despliegue en la nube: `docs/DESPLIEGUE.md`.
 
+## Diseño responsive
+
+- **Cliente:** interfaz mobile-first optimizada para smartphone, con un contenedor centrado.
+- **Comercio:** navegación inferior en móvil y layout de escritorio con menú lateral, métricas en fila y contenido ampliado.
+
 ## Pruebas
 
 ```bash

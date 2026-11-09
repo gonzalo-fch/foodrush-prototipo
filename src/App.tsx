@@ -87,21 +87,20 @@ export default function App() {
                   <Route path="/comercio/productos" element={<ProductManagementPage />} />
                   <Route path="/comercio/inventario" element={<InventoryMovementsPage />} />
                   <Route path="/comercio/pedidos" element={<OrdersPage />} />
+                  <Route path="/comercio/productos/nuevo" element={<AddProductPage />} />
+                  <Route path="/comercio/productos/editar/:id" element={<EditProductPage />} />
+                  <Route
+                    path="/comercio/productos/editar"
+                    element={<Navigate to="/comercio/productos" replace />}
+                  />
+                  <Route path="/comercio/pedidos/:id" element={<OrderDetailPage />} />
+                  <Route
+                    path="/comercio/resumen"
+                    element={<Navigate to="/comercio/pedidos/1042" replace />}
+                  />
+                  <Route path="/comercio/escanear" element={<QrScannerPage />} />
+                  <Route path="/comercio/ajustes" element={<CommerceSettingsPage />} />
                 </Route>
-
-                <Route path="/comercio/productos/nuevo" element={<AddProductPage />} />
-                <Route path="/comercio/productos/editar/:id" element={<EditProductPage />} />
-                <Route
-                  path="/comercio/productos/editar"
-                  element={<Navigate to="/comercio/productos" replace />}
-                />
-                <Route path="/comercio/pedidos/:id" element={<OrderDetailPage />} />
-                <Route
-                  path="/comercio/resumen"
-                  element={<Navigate to="/comercio/pedidos/1042" replace />}
-                />
-                <Route path="/comercio/escanear" element={<QrScannerPage />} />
-                <Route path="/comercio/ajustes" element={<CommerceSettingsPage />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/catalogo" replace />} />

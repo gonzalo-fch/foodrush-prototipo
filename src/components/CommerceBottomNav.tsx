@@ -20,7 +20,7 @@ export function CommerceBottomNav() {
   ).length
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2 border-t border-black/5 bg-white pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2 border-t border-black/5 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="flex h-[74px] items-start justify-around px-2 pt-2.5">
         {items.map((item) => {
           const Icon = item.icon
