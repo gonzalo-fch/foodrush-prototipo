@@ -109,7 +109,14 @@ export function ClientLogin() {
           <GoogleIcon size={34} />
         </button>
 
-        <p className="mt-6 text-center text-[12px] font-medium text-slate-400">
+        <p className="mt-6 text-center text-[14px] font-medium text-slate-500">
+          ¿Eres comercio?{' '}
+          <Link to="/comercio/login" className="font-extrabold text-brand">
+            Accede a tu panel
+          </Link>
+        </p>
+
+        <p className="mt-3 text-center text-[12px] font-medium text-slate-400">
           Demo: isabella@universidad.cl / 123456
         </p>
       </form>

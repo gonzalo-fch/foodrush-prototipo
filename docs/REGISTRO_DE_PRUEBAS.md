@@ -25,21 +25,21 @@ npm run lint
 
 | Actividad | Resultado |
 |---|---|
-| Archivos de prueba | 9 |
-| Pruebas ejecutadas | 45 |
-| Pruebas aprobadas | 45 |
+| Archivos de prueba | 10 |
+| Pruebas ejecutadas | 46 |
+| Pruebas aprobadas | 46 |
 | Pruebas fallidas | 0 |
 | Build de producción | Correcto |
 | Lint | Sin errores (solo advertencias de React) |
-| Cobertura de sentencias | 71,74 % |
-| Cobertura de líneas | 75,76 % |
-| Cobertura de ramas | 61,15 % |
+| Cobertura de sentencias | 60,97 % |
+| Cobertura de líneas | 63,72 % |
+| Cobertura de ramas | 52,06 % |
 
 Salida resumida:
 
 ```text
-Test Files  9 passed (9)
-Tests       45 passed (45)
+Test Files  10 passed (10)
+Tests       46 passed (46)
 ```
 
 ## 3. Detalle por suite
@@ -55,8 +55,9 @@ Tests       45 passed (45)
 | Carga y compra desde API | `src/store/AppStore.test.tsx` | 2 | Aprobadas |
 | Subtotal del carrito | `src/hooks/useCart.test.tsx` | 1 | Aprobada |
 | Guardas de autenticación | `src/components/authGuards.test.tsx` | 4 | Aprobadas |
+| Acceso al panel de comercio | `src/screens/client/AuthScreens.test.tsx` | 1 | Aprobada |
 
-> Los totales de esta tabla agrupan los casos descritos en el plan. Vitest contabiliza 45 pruebas efectivas.
+> Los totales de esta tabla agrupan los casos descritos en el plan. Vitest contabiliza 46 pruebas efectivas.
 
 ## 4. Cobertura
 
@@ -71,7 +72,8 @@ Reporte generado en `coverage/index.html`.
 | `seed.js` | 100 % | 50 % | 100 % | 100 % |
 | `ProductCard.tsx` | 60 % | 100 % | 50 % | 60 % |
 | Stores del frontend | 52,51 % | 50,36 % | 44,89 % | 55,43 % |
-| **Total** | **71,74 %** | **61,15 %** | **66,08 %** | **75,76 %** |
+| `AuthScreens.tsx` | 9,58 % | 2,38 % | 5,55 % | 10,44 % |
+| **Total** | **60,97 %** | **52,06 %** | **55,90 %** | **63,72 %** |
 
 ## 5. Evidencia manual
 
@@ -103,7 +105,7 @@ Reporte generado en `coverage/index.html`.
 El OE-05 queda respaldado con:
 
 - plan de pruebas formal;
-- 45 pruebas automatizadas aprobadas;
+- 46 pruebas automatizadas aprobadas;
 - cobertura de backend superior al 89 % en sentencias;
 - evidencia manual de compartición de datos entre sesiones;
 - verificación del flujo principal con Firestore Emulator;

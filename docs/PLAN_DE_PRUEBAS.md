@@ -128,6 +128,7 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PT-FE-12 | Frontend | Cliente autenticado | Acceso permitido |
 | PT-FE-13 | Frontend | Comercio sin sesión | Redirección a login de comercio |
 | PT-FE-14 | Frontend | Comercio autenticado | Acceso permitido |
+| PT-FE-15 | Frontend | Enlace de acceso al panel de comercio | Enlace visible y apunta a `/comercio/login` |
 
 ### 6.3 Casos manuales
 

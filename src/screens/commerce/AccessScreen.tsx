@@ -1,6 +1,6 @@
 import { EyeOff } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AppShell } from '../../components/AppShell'
 import { BrandMark } from '../../components/BrandMark'
 import { PrimaryButton } from '../../components/Buttons'
@@ -114,6 +114,13 @@ export function CommerceAccessPage() {
         >
           <GoogleIcon size={34} />
         </button>
+
+        <p className="mt-5 text-center text-[13px] font-medium text-slate-500">
+          ¿Eres cliente?{' '}
+          <Link to="/login" className="font-extrabold text-brand">
+            Inicia sesión aquí
+          </Link>
+        </p>
 
         <div className="mt-6 space-y-1 text-center text-[12px] font-medium text-slate-400">
           <p className="font-bold text-slate-500">Cuentas demo</p>
