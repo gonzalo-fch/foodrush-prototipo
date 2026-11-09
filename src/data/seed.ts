@@ -1,4 +1,4 @@
-import type { Category, Product, Store, User } from '../types'
+import type { Category, Store, User } from '../types'
 
 export const categories: Category[] = [
   { id: 'todo', label: 'Todo' },
@@ -102,65 +102,5 @@ export const users: User[] = [
     password: '123456',
     role: 'comercio',
     storeId: 'imperio-food-truck',
-  },
-]
-
-export const products: Product[] = [
-  {
-    id: 'p-01',
-    name: 'Almuerzo Ejecutivo',
-    unit: '1 Unidad',
-    price: 3660,
-    image: '/products/utensilios.png',
-    stock: 12,
-    category: 'almuerzos',
-  },
-  {
-    id: 'p-02',
-    name: 'Monster Energy',
-    unit: 'Lata 473ml',
-    price: 1890,
-    image: '/products/monster.png',
-    stock: 24,
-    category: 'bebidas',
-  },
-  {
-    id: 'p-03',
-    name: 'Ensalada César',
-    unit: '1 Unidad',
-    price: 3500,
-    image: '/products/ensalada.png',
-    stock: 8,
-    category: 'almuerzos',
-    sinSellos: true,
-  },
-  {
-    id: 'p-04',
-    name: 'Agua Mineral',
-    unit: 'Botella 500ml',
-    price: 690,
-    image: '/products/agua.png',
-    stock: 30,
-    category: 'bebidas',
-    sinSellos: true,
-  },
-  {
-    id: 'p-05',
-    name: 'Café',
-    unit: '200ml',
-    price: 1200,
-    image: '/products/cafe.png',
-    stock: 15,
-    category: 'bebidas',
-    sinSellos: true,
-  },
-  {
-    id: 'p-06',
-    name: 'Jumex Piña',
-    unit: 'Lata 300ml',
-    price: 1150,
-    image: '/products/jumex-clean.png',
-    stock: 0,
-    category: 'bebidas',
   },
 ]
