@@ -18,14 +18,14 @@ export function CommerceAccessPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!email.trim() || !password) {
       setError('Ingresa tu correo y contraseña.')
       return
     }
 
-    const result = login(email, password)
+    const result = await login(email, password)
     if (!result.ok) {
       setError(result.error)
       return

@@ -5,8 +5,12 @@ import {
   buildMovement,
   buildProduct,
   httpError,
+  newId,
+  normalizeCommerceUpdate,
   normalizeSellos,
   nowDisplay,
+  publicCommerce,
+  publicUser,
   validateOrderInput,
   withAvailability,
 } from './domain.js'
@@ -82,6 +86,17 @@ async function seedIfEmpty(db, seed) {
   await batch.commit()
 }
 
+async function seedCommercesIfMissing(db, seed) {
+  const existing = await db.collection('commerces').limit(1).get()
+  if (!existing.empty) return
+
+  const batch = db.batch()
+  seed.commerces.forEach((commerce) => {
+    batch.set(db.collection('commerces').doc(commerce.id), commerce)
+  })
+  await batch.commit()
+}
+
 async function readProducts(db) {
   const snap = await db.collection('products').get()
   return snap.docs
@@ -152,12 +167,120 @@ export async function createFirestoreRepository() {
   const storeNames = new Map(seed.stores.map((store) => [store.id, store.name]))
 
   await seedIfEmpty(db, seed)
+  await seedCommercesIfMissing(db, seed)
 
   return {
     backend: 'firestore',
 
     async bootstrap() {
       return readAll(db)
+    },
+
+    async getCommerces() {
+      const snap = await db.collection('commerces').get()
+      return snap.docs.map(docData).map(publicCommerce)
+    },
+
+    async loginCommerce(email, password) {
+      const normalized = String(email ?? '').trim().toLowerCase()
+      const snap = await db.collection('commerces').get()
+      const commerce = snap.docs
+        .map(docData)
+        .find(
+          (entry) =>
+            entry.businessEmail?.toLowerCase() === normalized &&
+            entry.password === password,
+        )
+
+      if (!commerce) {
+        throw httpError(401, 'Correo o contraseña incorrectos.')
+      }
+
+      return {
+        storeId: commerce.id,
+        profile: publicCommerce(commerce),
+      }
+    },
+
+    async updateCommerce(storeId, patch) {
+      const ref = db.collection('commerces').doc(storeId)
+      const snap = await ref.get()
+      if (!snap.exists) throw httpError(404, 'Comercio no encontrado.')
+
+      const updated = {
+        ...docData(snap),
+        ...normalizeCommerceUpdate(patch),
+      }
+      await ref.set(updated)
+      return publicCommerce(updated)
+    },
+
+    async changeCommercePassword(storeId, currentPassword, nextPassword) {
+      const ref = db.collection('commerces').doc(storeId)
+      const snap = await ref.get()
+      if (!snap.exists) throw httpError(404, 'Comercio no encontrado.')
+
+      const commerce = docData(snap)
+      if (currentPassword !== commerce.password) {
+        throw httpError(400, 'La contraseña actual no es correcta.')
+      }
+      if (String(nextPassword ?? '').length < 6) {
+        throw httpError(400, 'La nueva contraseña debe tener al menos 6 caracteres.')
+      }
+
+      await ref.set({ ...commerce, password: String(nextPassword) })
+      return { ok: true }
+    },
+
+    async loginClient(email, password) {
+      const normalized = String(email ?? '').trim().toLowerCase()
+      const snap = await db
+        .collection('users')
+        .where('email', '==', normalized)
+        .limit(1)
+        .get()
+
+      if (snap.empty) {
+        throw httpError(401, 'Correo o contraseña incorrectos.')
+      }
+
+      const user = docData(snap.docs[0])
+      if (user.role !== 'cliente' || user.password !== password) {
+        throw httpError(401, 'Correo o contraseña incorrectos.')
+      }
+
+      return publicUser(user)
+    },
+
+    async registerClient({ name, email, password }) {
+      const cleanName = String(name ?? '').trim()
+      const normalized = String(email ?? '').trim().toLowerCase()
+      const passwordValue = String(password ?? '')
+
+      if (!cleanName) throw httpError(400, 'Ingresa tu nombre completo.')
+      if (!normalized.includes('@')) throw httpError(400, 'Ingresa un correo válido.')
+      if (passwordValue.length < 6) {
+        throw httpError(400, 'La contraseña debe tener al menos 6 caracteres.')
+      }
+
+      const existing = await db
+        .collection('users')
+        .where('email', '==', normalized)
+        .limit(1)
+        .get()
+      if (!existing.empty) {
+        throw httpError(409, 'Ya existe una cuenta con ese correo.')
+      }
+
+      const user = {
+        id: newId('u'),
+        name: cleanName,
+        email: normalized,
+        password: passwordValue,
+        role: 'cliente',
+      }
+      await db.collection('users').doc(user.id).set(user)
+      return publicUser(user)
     },
 
     async getCart(customerId, storeId) {

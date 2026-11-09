@@ -220,3 +220,67 @@ describe('API · errores', () => {
     expect(response.body.error).toBeTruthy()
   })
 })
+
+describe('API · cuentas y ajustes compartidos', () => {
+  it('autentica clientes y registra cuentas nuevas', async () => {
+    const login = await request(app)
+      .post('/api/auth/client/login')
+      .send({ email: 'isabella@universidad.cl', password: '123456' })
+      .expect(200)
+    expect(login.body.name).toBe('Isabella Rodriguez')
+    expect(login.body.password).toBeUndefined()
+
+    const registered = await request(app)
+      .post('/api/auth/client/register')
+      .send({
+        name: 'Cliente API Nuevo',
+        email: 'api-nuevo@universidad.cl',
+        password: 'abcdef',
+      })
+      .expect(201)
+    expect(registered.body.password).toBeUndefined()
+
+    await request(app)
+      .post('/api/auth/client/login')
+      .send({ email: 'api-nuevo@universidad.cl', password: 'abcdef' })
+      .expect(200)
+  })
+
+  it('expone y actualiza los ajustes de los comercios', async () => {
+    const before = await request(app).get('/api/commerces').expect(200)
+    expect(before.body).toHaveLength(3)
+    expect(before.body[0].password).toBeUndefined()
+
+    const updated = await request(app)
+      .patch('/api/commerces/casino-araucarias')
+      .send({ open: false, creditEnabled: false })
+      .expect(200)
+    expect(updated.body.open).toBe(false)
+    expect(updated.body.creditEnabled).toBe(false)
+
+    const after = await request(app).get('/api/commerces').expect(200)
+    const araucarias = after.body.find(
+      (entry) => entry.id === 'casino-araucarias',
+    )
+    expect(araucarias.open).toBe(false)
+  })
+
+  it('autentica comercios y cambia su contraseña', async () => {
+    const login = await request(app)
+      .post('/api/auth/commerce/login')
+      .send({ email: 'admin@casinoaraucarias.cl', password: '123456' })
+      .expect(200)
+    expect(login.body.storeId).toBe('casino-araucarias')
+    expect(login.body.profile.password).toBeUndefined()
+
+    await request(app)
+      .post('/api/commerces/casino-araucarias/password')
+      .send({ currentPassword: '123456', nextPassword: 'nueva123' })
+      .expect(200)
+
+    await request(app)
+      .post('/api/auth/commerce/login')
+      .send({ email: 'admin@casinoaraucarias.cl', password: 'nueva123' })
+      .expect(200)
+  })
+})

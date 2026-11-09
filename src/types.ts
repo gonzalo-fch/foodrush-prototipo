@@ -74,6 +74,20 @@ export type Reservation = {
   updatedAt: string
 }
 
+export type CommerceProfile = {
+  id: string
+  userId: string
+  businessName: string
+  businessEmail: string
+  open: boolean
+  creditEnabled: boolean
+  debitEnabled: boolean
+  newOrdersNotifications: boolean
+  cancellationNotifications: boolean
+  openTime: string
+  closeTime: string
+}
+
 export type OrderStatus = 'pendiente' | 'retirado' | 'cancelado'
 
 export type OrderItem = {

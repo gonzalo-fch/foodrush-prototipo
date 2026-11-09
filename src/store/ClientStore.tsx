@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { stores, users as seedUsers } from '../data/seed'
+import { stores } from '../data/seed'
 import { api } from '../lib/api'
 import type { Store, User } from '../types'
 import { useAppStore } from './AppStore'
@@ -17,8 +17,7 @@ type CartLine = {
 }
 
 type ClientState = {
-  users: User[]
-  currentUserId: string | null
+  currentUser: User | null
   cart: CartLine[]
   favorites: string[]
   selectedStoreId: string
@@ -36,7 +35,6 @@ type RegisterInput = {
 }
 
 type ClientStoreValue = {
-  users: User[]
   currentUser: User | null
   selectedStore: Store
   cart: CartLine[]
@@ -44,8 +42,8 @@ type ClientStoreValue = {
   favorites: string[]
   readNotificationIds: string[]
   pushNotifications: boolean
-  login: (email: string, password: string) => AuthResult
-  register: (input: RegisterInput) => AuthResult
+  login: (email: string, password: string) => Promise<AuthResult>
+  register: (input: RegisterInput) => Promise<AuthResult>
   logout: () => Promise<void>
   selectStore: (storeId: string) => Promise<void>
   addToCart: (productId: string, quantity?: number) => Promise<ActionResult>
@@ -59,11 +57,10 @@ type ClientStoreValue = {
   setPushNotifications: (value: boolean) => void
 }
 
-const STORAGE_KEY = 'foodrush-client-v2'
+const STORAGE_KEY = 'foodrush-client-v3'
 
 const defaultState: ClientState = {
-  users: seedUsers,
-  currentUserId: null,
+  currentUser: null,
   cart: [],
   favorites: ['cp-9', 'cp-6', 'cp-4', 'cp-2'],
   selectedStoreId: 'casino-los-notros',
@@ -80,8 +77,7 @@ function loadState(): ClientState {
 
     const parsed = JSON.parse(raw) as Partial<ClientState>
     return {
-      users: parsed.users?.length ? parsed.users : defaultState.users,
-      currentUserId: parsed.currentUserId ?? null,
+      currentUser: parsed.currentUser ?? null,
       cart: parsed.cart ?? [],
       favorites: parsed.favorites ?? defaultState.favorites,
       selectedStoreId: parsed.selectedStoreId ?? defaultState.selectedStoreId,
@@ -107,8 +103,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
-  const currentUser =
-    state.users.find((user) => user.id === state.currentUserId) ?? null
+  const currentUser = state.currentUser
   const selectedStore =
     stores.find((store) => store.id === state.selectedStoreId) ?? stores[0]
 
@@ -133,49 +128,29 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
   }, [applyProducts, currentUser, selectedStore.id])
 
   const value = useMemo<ClientStoreValue>(() => {
-    function login(email: string, password: string): AuthResult {
-      const normalized = email.trim().toLowerCase()
-      const user = state.users.find(
-        (entry) =>
-          entry.role === 'cliente' &&
-          entry.email?.toLowerCase() === normalized &&
-          entry.password === password,
-      )
-
-      if (!user) {
-        return { ok: false, error: 'Correo o contraseña incorrectos.' }
+    async function login(email: string, password: string): Promise<AuthResult> {
+      try {
+        const user = await api.loginClient(email, password)
+        setState((current) => ({ ...current, currentUser: user }))
+        return { ok: true }
+      } catch (requestError) {
+        return { ok: false, error: messageOf(requestError) }
       }
-
-      setState((current) => ({ ...current, currentUserId: user.id }))
-      return { ok: true }
     }
 
-    function register(input: RegisterInput): AuthResult {
-      const normalized = input.email.trim().toLowerCase()
-      const exists = state.users.some(
-        (entry) => entry.email?.toLowerCase() === normalized,
-      )
-      if (exists) {
-        return { ok: false, error: 'Ya existe una cuenta con ese correo.' }
+    async function register(input: RegisterInput): Promise<AuthResult> {
+      try {
+        const user = await api.registerClient(input)
+        setState((current) => ({
+          ...current,
+          currentUser: user,
+          selectedStoreId: current.selectedStoreId || stores[0].id,
+          cart: [],
+        }))
+        return { ok: true }
+      } catch (requestError) {
+        return { ok: false, error: messageOf(requestError) }
       }
-
-      const user: User = {
-        id: `u-${crypto.randomUUID?.() ?? Date.now()}`,
-        name: input.name.trim(),
-        email: normalized,
-        password: input.password,
-        role: 'cliente',
-      }
-
-      setState((current) => ({
-        ...current,
-        users: [...current.users, user],
-        currentUserId: user.id,
-        selectedStoreId: current.selectedStoreId || stores[0].id,
-        cart: [],
-      }))
-
-      return { ok: true }
     }
 
     async function logout() {
@@ -188,7 +163,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       }
       setState((current) => ({
         ...current,
-        currentUserId: null,
+        currentUser: null,
         cart: [],
       }))
     }
@@ -332,7 +307,6 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
     const cartCount = state.cart.reduce((sum, line) => sum + line.quantity, 0)
 
     return {
-      users: state.users,
       currentUser,
       selectedStore,
       cart: state.cart,

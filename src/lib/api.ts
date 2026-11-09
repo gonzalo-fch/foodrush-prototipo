@@ -1,4 +1,11 @@
-import type { CommerceProduct, InventoryMovement, Order, Seal } from '../types'
+import type {
+  CommerceProduct,
+  CommerceProfile,
+  InventoryMovement,
+  Order,
+  Seal,
+  User,
+} from '../types'
 
 export type BootstrapPayload = {
   products: CommerceProduct[]
@@ -19,6 +26,21 @@ export type SetCartItemPayload = {
   productId: string
   quantity: number
   mode?: 'set' | 'add'
+}
+
+export type CommerceLoginPayload = {
+  storeId: string
+  profile: CommerceProfile
+}
+
+export type CommerceUpdatePayload = Partial<
+  Omit<CommerceProfile, 'id' | 'userId'>
+>
+
+export type RegisterClientPayload = {
+  name: string
+  email: string
+  password: string
 }
 
 export type CreateOrderPayload = {
@@ -73,6 +95,39 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   bootstrap: () => request<BootstrapPayload>('/bootstrap'),
+  loginClient: (email: string, password: string) =>
+    request<User>('/auth/client/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  registerClient: (input: RegisterClientPayload) =>
+    request<User>('/auth/client/register', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  loginCommerce: (email: string, password: string) =>
+    request<CommerceLoginPayload>('/auth/commerce/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  getCommerces: () => request<CommerceProfile[]>('/commerces'),
+  updateCommerce: (storeId: string, input: CommerceUpdatePayload) =>
+    request<CommerceProfile>(`/commerces/${encodeURIComponent(storeId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  changeCommercePassword: (
+    storeId: string,
+    currentPassword: string,
+    nextPassword: string,
+  ) =>
+    request<{ ok: true }>(
+      `/commerces/${encodeURIComponent(storeId)}/password`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, nextPassword }),
+      },
+    ),
   getCart: (customerId: string, storeId: string) =>
     request<CartPayload>(
       `/cart?customerId=${encodeURIComponent(customerId)}&storeId=${encodeURIComponent(storeId)}`,

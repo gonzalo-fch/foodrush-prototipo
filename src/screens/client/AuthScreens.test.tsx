@@ -10,6 +10,12 @@ import { ClientLogin } from './AuthScreens'
 vi.mock('../../lib/api', () => ({
   api: {
     bootstrap: vi.fn(),
+    loginClient: vi.fn(),
+    registerClient: vi.fn(),
+    loginCommerce: vi.fn(),
+    getCommerces: vi.fn(),
+    updateCommerce: vi.fn(),
+    changeCommercePassword: vi.fn(),
     getCart: vi.fn(),
     setCartItem: vi.fn(),
     removeCartItem: vi.fn(),

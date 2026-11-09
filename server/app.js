@@ -27,6 +27,56 @@ export function createApp(repository) {
     }),
   )
 
+  app.post(
+    '/api/auth/client/login',
+    asyncHandler(async (req, res) => {
+      res.json(await repository.loginClient(req.body.email, req.body.password))
+    }),
+  )
+
+  app.post(
+    '/api/auth/client/register',
+    asyncHandler(async (req, res) => {
+      res.status(201).json(await repository.registerClient(req.body))
+    }),
+  )
+
+  app.post(
+    '/api/auth/commerce/login',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await repository.loginCommerce(req.body.email, req.body.password),
+      )
+    }),
+  )
+
+  app.get(
+    '/api/commerces',
+    asyncHandler(async (req, res) => {
+      res.json(await repository.getCommerces())
+    }),
+  )
+
+  app.patch(
+    '/api/commerces/:storeId',
+    asyncHandler(async (req, res) => {
+      res.json(await repository.updateCommerce(req.params.storeId, req.body))
+    }),
+  )
+
+  app.post(
+    '/api/commerces/:storeId/password',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await repository.changeCommercePassword(
+          req.params.storeId,
+          req.body.currentPassword,
+          req.body.nextPassword,
+        ),
+      )
+    }),
+  )
+
   app.get(
     '/api/cart',
     asyncHandler(async (req, res) => {

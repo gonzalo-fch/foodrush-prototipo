@@ -557,24 +557,28 @@ export function CommerceSettingsPage() {
     setDialog('hours')
   }
 
-  function saveInfo(event: FormEvent<HTMLFormElement>) {
+  async function saveInfo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!infoName.trim() || !infoEmail.includes('@')) {
       showToast('Ingresa un nombre y correo válidos', 'error')
       return
     }
-    updateBusiness(infoName, infoEmail)
+    const result = await updateBusiness(infoName, infoEmail)
+    if (!result.ok) {
+      showToast(result.error, 'error')
+      return
+    }
     showToast('Información del negocio actualizada')
     setDialog(null)
   }
 
-  function savePassword(event: FormEvent<HTMLFormElement>) {
+  async function savePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (newPassword !== confirmPassword) {
       setPasswordError('Las contraseñas no coinciden.')
       return
     }
-    const result = changePassword(currentPassword, newPassword)
+    const result = await changePassword(currentPassword, newPassword)
     if (!result.ok) {
       setPasswordError(result.error)
       return
@@ -583,13 +587,17 @@ export function CommerceSettingsPage() {
     setDialog(null)
   }
 
-  function saveHours(event: FormEvent<HTMLFormElement>) {
+  async function saveHours(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!hoursOpen || !hoursClose) {
       showToast('Ingresa ambos horarios', 'error')
       return
     }
-    setHours(hoursOpen, hoursClose)
+    const result = await setHours(hoursOpen, hoursClose)
+    if (!result.ok) {
+      showToast(result.error, 'error')
+      return
+    }
     showToast('Horarios actualizados')
     setDialog(null)
   }
@@ -620,9 +628,16 @@ export function CommerceSettingsPage() {
             right={
               <Toggle
                 checked={open}
-                onChange={(value) => {
-                  setOpen(value)
-                  showToast(value ? 'Negocio abierto' : 'Negocio cerrado', 'info')
+                onChange={async (value) => {
+                  const result = await setOpen(value)
+                  showToast(
+                    result.ok
+                      ? value
+                        ? 'Negocio abierto'
+                        : 'Negocio cerrado'
+                      : result.error,
+                    result.ok ? 'info' : 'error',
+                  )
                 }}
               />
             }
@@ -637,11 +652,15 @@ export function CommerceSettingsPage() {
             right={
               <Toggle
                 checked={creditEnabled}
-                onChange={(value) => {
-                  setCreditEnabled(value)
+                onChange={async (value) => {
+                  const result = await setCreditEnabled(value)
                   showToast(
-                    value ? 'Pago con crédito habilitado' : 'Pago con crédito deshabilitado',
-                    'info',
+                    result.ok
+                      ? value
+                        ? 'Pago con crédito habilitado'
+                        : 'Pago con crédito deshabilitado'
+                      : result.error,
+                    result.ok ? 'info' : 'error',
                   )
                 }}
               />
@@ -653,11 +672,15 @@ export function CommerceSettingsPage() {
             right={
               <Toggle
                 checked={debitEnabled}
-                onChange={(value) => {
-                  setDebitEnabled(value)
+                onChange={async (value) => {
+                  const result = await setDebitEnabled(value)
                   showToast(
-                    value ? 'Pago con débito habilitado' : 'Pago con débito deshabilitado',
-                    'info',
+                    result.ok
+                      ? value
+                        ? 'Pago con débito habilitado'
+                        : 'Pago con débito deshabilitado'
+                      : result.error,
+                    result.ok ? 'info' : 'error',
                   )
                 }}
               />
@@ -673,11 +696,15 @@ export function CommerceSettingsPage() {
             right={
               <Toggle
                 checked={newOrdersNotifications}
-                onChange={(value) => {
-                  setNewOrdersNotifications(value)
+                onChange={async (value) => {
+                  const result = await setNewOrdersNotifications(value)
                   showToast(
-                    value ? 'Notificaciones de pedidos activadas' : 'Notificaciones de pedidos desactivadas',
-                    'info',
+                    result.ok
+                      ? value
+                        ? 'Notificaciones de pedidos activadas'
+                        : 'Notificaciones de pedidos desactivadas'
+                      : result.error,
+                    result.ok ? 'info' : 'error',
                   )
                 }}
               />
@@ -689,13 +716,15 @@ export function CommerceSettingsPage() {
             right={
               <Toggle
                 checked={cancellationNotifications}
-                onChange={(value) => {
-                  setCancellationNotifications(value)
+                onChange={async (value) => {
+                  const result = await setCancellationNotifications(value)
                   showToast(
-                    value
-                      ? 'Notificaciones de cancelaciones activadas'
-                      : 'Notificaciones de cancelaciones desactivadas',
-                    'info',
+                    result.ok
+                      ? value
+                        ? 'Notificaciones de cancelaciones activadas'
+                        : 'Notificaciones de cancelaciones desactivadas'
+                      : result.error,
+                    result.ok ? 'info' : 'error',
                   )
                 }}
               />

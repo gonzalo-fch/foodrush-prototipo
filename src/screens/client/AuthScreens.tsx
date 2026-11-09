@@ -22,14 +22,14 @@ export function ClientLogin() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!email.trim() || !password) {
       setError('Ingresa tu correo y contraseña.')
       return
     }
 
-    const result = login(email, password)
+    const result = await login(email, password)
     if (!result.ok) {
       setError(result.error)
       return
@@ -134,7 +134,7 @@ export function ClientRegister() {
   const [accepted, setAccepted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors: Record<string, string> = {}
 
@@ -147,7 +147,7 @@ export function ClientRegister() {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    const result = register({ name, email, password })
+    const result = await register({ name, email, password })
     if (!result.ok) {
       setErrors({ email: result.error })
       return

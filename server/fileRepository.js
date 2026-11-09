@@ -6,18 +6,20 @@ import {
   buildMovement,
   buildProduct,
   httpError,
+  newId,
+  normalizeCommerceUpdate,
   normalizeSellos,
   nowDisplay,
+  publicCommerce,
+  publicUser,
   validateOrderInput,
   withAvailability,
 } from './domain.js'
 import { createSeedState } from './seed.js'
 
-const defaultDataFile = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '.data',
-  'state-v2.json',
-)
+const defaultDataFile = process.env.FOODRUSH_DATA_FILE
+  ? path.resolve(process.env.FOODRUSH_DATA_FILE)
+  : path.join(path.dirname(fileURLToPath(import.meta.url)), '.data', 'state-v3.json')
 
 function clone(value) {
   return structuredClone(value)
@@ -31,7 +33,9 @@ function loadState(dataFile) {
       !Array.isArray(parsed.products) ||
       !Array.isArray(parsed.orders) ||
       !Array.isArray(parsed.movements) ||
-      !Array.isArray(parsed.reservations)
+      !Array.isArray(parsed.reservations) ||
+      !Array.isArray(parsed.users) ||
+      !Array.isArray(parsed.commerces)
     ) {
       throw new Error('Estado inválido')
     }
@@ -187,6 +191,99 @@ export function createFileRepository({ dataFile = defaultDataFile } = {}) {
 
     async bootstrap() {
       return bootstrap()
+    },
+
+    async getCommerces() {
+      return state.commerces.map(publicCommerce)
+    },
+
+    async loginCommerce(email, password) {
+      const normalized = String(email ?? '').trim().toLowerCase()
+      const commerce = state.commerces.find(
+        (entry) =>
+          entry.businessEmail?.toLowerCase() === normalized &&
+          entry.password === password,
+      )
+
+      if (!commerce) {
+        throw httpError(401, 'Correo o contraseña incorrectos.')
+      }
+
+      return {
+        storeId: commerce.id,
+        profile: publicCommerce(commerce),
+      }
+    },
+
+    async updateCommerce(storeId, patch) {
+      const commerce = state.commerces.find((entry) => entry.id === storeId)
+      if (!commerce) throw httpError(404, 'Comercio no encontrado.')
+
+      Object.assign(commerce, normalizeCommerceUpdate(patch))
+      persist()
+      return publicCommerce(commerce)
+    },
+
+    async changeCommercePassword(storeId, currentPassword, nextPassword) {
+      const commerce = state.commerces.find((entry) => entry.id === storeId)
+      if (!commerce) throw httpError(404, 'Comercio no encontrado.')
+      if (currentPassword !== commerce.password) {
+        throw httpError(400, 'La contraseña actual no es correcta.')
+      }
+      if (String(nextPassword ?? '').length < 6) {
+        throw httpError(400, 'La nueva contraseña debe tener al menos 6 caracteres.')
+      }
+
+      commerce.password = String(nextPassword)
+      persist()
+      return { ok: true }
+    },
+
+    async loginClient(email, password) {
+      const normalized = String(email ?? '').trim().toLowerCase()
+      const user = state.users.find(
+        (entry) =>
+          entry.role === 'cliente' &&
+          entry.email?.toLowerCase() === normalized &&
+          entry.password === password,
+      )
+
+      if (!user) {
+        throw httpError(401, 'Correo o contraseña incorrectos.')
+      }
+
+      return publicUser(user)
+    },
+
+    async registerClient({ name, email, password }) {
+      const cleanName = String(name ?? '').trim()
+      const normalized = String(email ?? '').trim().toLowerCase()
+      const passwordValue = String(password ?? '')
+
+      if (!cleanName) throw httpError(400, 'Ingresa tu nombre completo.')
+      if (!normalized.includes('@')) throw httpError(400, 'Ingresa un correo válido.')
+      if (passwordValue.length < 6) {
+        throw httpError(400, 'La contraseña debe tener al menos 6 caracteres.')
+      }
+      if (
+        state.users.some(
+          (entry) => entry.email?.toLowerCase() === normalized,
+        )
+      ) {
+        throw httpError(409, 'Ya existe una cuenta con ese correo.')
+      }
+
+      const user = {
+        id: newId('u'),
+        name: cleanName,
+        email: normalized,
+        password: passwordValue,
+        role: 'cliente',
+      }
+
+      state.users.push(user)
+      persist()
+      return publicUser(user)
     },
 
     async getCart(customerId, storeId) {

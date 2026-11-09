@@ -11,6 +11,12 @@ import { RequireCommerceAuth } from './RequireCommerceAuth'
 vi.mock('../lib/api', () => ({
   api: {
     bootstrap: vi.fn(),
+    loginClient: vi.fn(),
+    registerClient: vi.fn(),
+    loginCommerce: vi.fn(),
+    getCommerces: vi.fn(),
+    updateCommerce: vi.fn(),
+    changeCommercePassword: vi.fn(),
     getCart: vi.fn(),
     setCartItem: vi.fn(),
     removeCartItem: vi.fn(),
@@ -66,6 +72,7 @@ beforeEach(() => {
     movements: [],
   })
   vi.mocked(api.getCart).mockResolvedValue({ products: [], cart: [] })
+  vi.mocked(api.getCommerces).mockResolvedValue([])
 })
 
 describe('RequireClientAuth', () => {
@@ -76,8 +83,15 @@ describe('RequireClientAuth', () => {
 
   it('permite el acceso con un cliente autenticado', () => {
     window.localStorage.setItem(
-      'foodrush-client-v2',
-      JSON.stringify({ currentUserId: 'u-01' }),
+      'foodrush-client-v3',
+      JSON.stringify({
+        currentUser: {
+          id: 'u-01',
+          name: 'Isabella Rodriguez',
+          email: 'isabella@universidad.cl',
+          role: 'cliente',
+        },
+      }),
     )
     renderClient('/privado')
     expect(screen.getByText('contenido cliente')).toBeInTheDocument()
@@ -85,17 +99,31 @@ describe('RequireClientAuth', () => {
 })
 
 describe('RequireCommerceAuth', () => {
-  it('redirige al login sin sesión de comercio', () => {
+  it('redirige al login sin sesión de comercio', async () => {
     renderCommerce('/privado')
-    expect(screen.getByText('login comercio')).toBeInTheDocument()
+    expect(await screen.findByText('login comercio')).toBeInTheDocument()
   })
 
-  it('permite el acceso con un comercio autenticado', () => {
+  it('permite el acceso con un comercio autenticado', async () => {
+    const profile = {
+      id: 'casino-araucarias',
+      userId: 'u-07',
+      businessName: 'Casino de Las Araucarias',
+      businessEmail: 'admin@casinoaraucarias.cl',
+      open: true,
+      creditEnabled: true,
+      debitEnabled: true,
+      newOrdersNotifications: true,
+      cancellationNotifications: true,
+      openTime: '08:00',
+      closeTime: '20:00',
+    }
     window.localStorage.setItem(
-      'foodrush-commerce-v2',
-      JSON.stringify({ currentUserId: 'u-07', profiles: {} }),
+      'foodrush-commerce-v3',
+      JSON.stringify({ currentStoreId: profile.id, commerces: [profile] }),
     )
+    vi.mocked(api.getCommerces).mockResolvedValue([profile])
     renderCommerce('/privado')
-    expect(screen.getByText('contenido comercio')).toBeInTheDocument()
+    expect(await screen.findByText('contenido comercio')).toBeInTheDocument()
   })
 })

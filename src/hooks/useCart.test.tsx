@@ -8,6 +8,12 @@ import { useCart } from './useCart'
 vi.mock('../lib/api', () => ({
   api: {
     bootstrap: vi.fn(),
+    loginClient: vi.fn(),
+    registerClient: vi.fn(),
+    loginCommerce: vi.fn(),
+    getCommerces: vi.fn(),
+    updateCommerce: vi.fn(),
+    changeCommercePassword: vi.fn(),
     getCart: vi.fn(),
     setCartItem: vi.fn(),
     removeCartItem: vi.fn(),
@@ -62,8 +68,15 @@ function CartProbe() {
 beforeEach(() => {
   window.localStorage.clear()
   window.localStorage.setItem(
-    'foodrush-client-v2',
-    JSON.stringify({ currentUserId: 'u-01' }),
+    'foodrush-client-v3',
+    JSON.stringify({
+      currentUser: {
+        id: 'u-01',
+        name: 'Isabella Rodriguez',
+        email: 'isabella@universidad.cl',
+        role: 'cliente',
+      },
+    }),
   )
   vi.mocked(api.bootstrap).mockResolvedValue({
     products,

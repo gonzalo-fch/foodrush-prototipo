@@ -30,6 +30,25 @@ export function createSeedState() {
       }),
     )
 
+  const commerceUsers = users.filter((user) => user.role === 'comercio')
+  const commerces = commerceUsers.map((user) => {
+    const store = stores.find((entry) => entry.id === user.storeId)
+    return {
+      id: user.storeId,
+      userId: user.id,
+      businessName: store?.name ?? user.name,
+      businessEmail: user.email ?? '',
+      password: user.password ?? '123456',
+      open: true,
+      creditEnabled: true,
+      debitEnabled: true,
+      newOrdersNotifications: true,
+      cancellationNotifications: true,
+      openTime: '08:00',
+      closeTime: '20:00',
+    }
+  })
+
   const products = seedProducts.map((product, index) => ({
     ...product,
     reserved: reservedByProduct.get(product.id) ?? 0,
@@ -56,6 +75,7 @@ export function createSeedState() {
     orders: seedOrders,
     movements,
     reservations,
+    commerces,
     orderCounter: Math.max(...seedOrders.map((order) => Number(order.id) || 0), 1000),
   }
 }

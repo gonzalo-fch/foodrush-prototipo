@@ -42,6 +42,70 @@ const SEAL_VALUES = new Set([
   'azucares',
 ])
 
+export function publicUser(user) {
+  if (!user) return null
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar,
+    role: user.role,
+    storeId: user.storeId,
+  }
+}
+
+export function publicCommerce(commerce) {
+  if (!commerce) return null
+  const data = { ...commerce }
+  delete data.password
+  return data
+}
+
+export function normalizeCommerceUpdate(patch) {
+  const allowed = [
+    'businessName',
+    'businessEmail',
+    'open',
+    'creditEnabled',
+    'debitEnabled',
+    'newOrdersNotifications',
+    'cancellationNotifications',
+    'openTime',
+    'closeTime',
+  ]
+  const result = {}
+
+  allowed.forEach((key) => {
+    if (patch[key] !== undefined) result[key] = patch[key]
+  })
+
+  if (result.businessName !== undefined) {
+    result.businessName = String(result.businessName).trim()
+    if (!result.businessName) throw httpError(400, 'Ingresa el nombre del negocio.')
+  }
+  if (result.businessEmail !== undefined) {
+    result.businessEmail = String(result.businessEmail).trim()
+    if (!result.businessEmail.includes('@')) {
+      throw httpError(400, 'Ingresa un correo válido.')
+    }
+  }
+
+  ;['open', 'creditEnabled', 'debitEnabled', 'newOrdersNotifications', 'cancellationNotifications'].forEach(
+    (key) => {
+      if (result[key] !== undefined) result[key] = Boolean(result[key])
+    },
+  )
+
+  ;['openTime', 'closeTime'].forEach((key) => {
+    if (result[key] !== undefined) {
+      result[key] = String(result[key])
+      if (!result[key]) throw httpError(400, 'Ingresa un horario válido.')
+    }
+  })
+
+  return result
+}
+
 export function normalizeSellos(value) {
   if (!Array.isArray(value)) return []
   return Array.from(new Set(value.filter((seal) => SEAL_VALUES.has(seal))))

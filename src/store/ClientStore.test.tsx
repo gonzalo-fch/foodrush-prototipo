@@ -9,6 +9,12 @@ import { ClientStoreProvider, useClientStore } from './ClientStore'
 vi.mock('../lib/api', () => ({
   api: {
     bootstrap: vi.fn(),
+    loginClient: vi.fn(),
+    registerClient: vi.fn(),
+    loginCommerce: vi.fn(),
+    getCommerces: vi.fn(),
+    updateCommerce: vi.fn(),
+    changeCommercePassword: vi.fn(),
     getCart: vi.fn(),
     setCartItem: vi.fn(),
     removeCartItem: vi.fn(),
@@ -114,6 +120,12 @@ beforeEach(() => {
     orders: [],
     movements: [],
   })
+  vi.mocked(api.loginClient).mockResolvedValue({
+    id: 'u-01',
+    name: 'Isabella Rodriguez',
+    email: 'isabella@universidad.cl',
+    role: 'cliente',
+  })
   vi.mocked(api.getCart).mockImplementation(async () => cartPayload())
   vi.mocked(api.setCartItem).mockImplementation(async (input) => {
     serverQuantity =
@@ -133,8 +145,15 @@ beforeEach(() => {
 describe('ClientStore · carrito', () => {
   it('reserva, acumula y elimina cantidades', async () => {
     window.localStorage.setItem(
-      'foodrush-client-v2',
-      JSON.stringify({ currentUserId: 'u-01' }),
+      'foodrush-client-v3',
+      JSON.stringify({
+        currentUser: {
+          id: 'u-01',
+          name: 'Isabella Rodriguez',
+          email: 'isabella@universidad.cl',
+          role: 'cliente',
+        },
+      }),
     )
     const user = userEvent.setup()
     renderWithProviders(<CartProbe />)
@@ -165,7 +184,9 @@ describe('ClientStore · sesión', () => {
     expect(screen.getByTestId('user')).toHaveTextContent('sin sesión')
 
     await user.click(screen.getByRole('button', { name: 'entrar' }))
-    expect(screen.getByTestId('user')).toHaveTextContent('Isabella Rodriguez')
+    await waitFor(() =>
+      expect(screen.getByTestId('user')).toHaveTextContent('Isabella Rodriguez'),
+    )
 
     await user.click(screen.getByRole('button', { name: 'salir' }))
     await waitFor(() =>

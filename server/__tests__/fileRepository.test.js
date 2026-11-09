@@ -306,3 +306,90 @@ describe('FileRepository · productos e inventario', () => {
     })
   })
 })
+
+describe('FileRepository · cuentas y ajustes compartidos', () => {
+  it('autentica clientes del seed sin exponer la contraseña', async () => {
+    const user = await repository.loginClient(
+      'isabella@universidad.cl',
+      '123456',
+    )
+
+    expect(user.name).toBe('Isabella Rodriguez')
+    expect(user.password).toBeUndefined()
+  })
+
+  it('registra un cliente y permite iniciar sesión', async () => {
+    const created = await repository.registerClient({
+      name: 'Cliente Nuevo',
+      email: 'nuevo@universidad.cl',
+      password: 'abcdef',
+    })
+
+    expect(created.id).toBeTruthy()
+    expect(created.password).toBeUndefined()
+
+    const logged = await repository.loginClient(
+      'nuevo@universidad.cl',
+      'abcdef',
+    )
+    expect(logged.name).toBe('Cliente Nuevo')
+
+    await expect(
+      repository.registerClient({
+        name: 'Duplicado',
+        email: 'nuevo@universidad.cl',
+        password: 'abcdef',
+      }),
+    ).rejects.toThrow('Ya existe')
+  })
+
+  it('comparte los ajustes del comercio y los persiste', async () => {
+    const before = await repository.getCommerces()
+    const araucarias = before.find(
+      (entry) => entry.id === 'casino-araucarias',
+    )
+    expect(araucarias.password).toBeUndefined()
+    expect(araucarias.open).toBe(true)
+
+    const updated = await repository.updateCommerce('casino-araucarias', {
+      open: false,
+      creditEnabled: false,
+      businessName: 'Araucarias Actualizado',
+    })
+    expect(updated.open).toBe(false)
+    expect(updated.creditEnabled).toBe(false)
+    expect(updated.businessName).toBe('Araucarias Actualizado')
+
+    const reloaded = createFileRepository({ dataFile })
+    const persisted = await reloaded.getCommerces()
+    const persistedAraucarias = persisted.find(
+      (entry) => entry.id === 'casino-araucarias',
+    )
+    expect(persistedAraucarias.open).toBe(false)
+    expect(persistedAraucarias.businessName).toBe('Araucarias Actualizado')
+  })
+
+  it('permite iniciar sesión al comercio y cambiar su contraseña', async () => {
+    const login = await repository.loginCommerce(
+      'admin@casinoaraucarias.cl',
+      '123456',
+    )
+    expect(login.storeId).toBe('casino-araucarias')
+    expect(login.profile.password).toBeUndefined()
+
+    await expect(
+      repository.loginCommerce('admin@casinoaraucarias.cl', 'incorrecta'),
+    ).rejects.toThrow('incorrectos')
+
+    await repository.changeCommercePassword(
+      'casino-araucarias',
+      '123456',
+      'nueva123',
+    )
+    const changed = await repository.loginCommerce(
+      'admin@casinoaraucarias.cl',
+      'nueva123',
+    )
+    expect(changed.storeId).toBe('casino-araucarias')
+  })
+})
