@@ -30,11 +30,13 @@ export const seedProducts: CommerceProduct[] = [
   p('casino-los-notros', 'cp-7', 'Almuerzo Ejecutivo', 3660, '/products/utensilios-clean.png', 12, 'Almuerzos', '1 Unidad', {
     description: 'Almuerzo del día con entrada, plato principal y bebestible.',
     weight: '1 Unidad',
+    sellos: ['calorias', 'sodio'],
   }),
   p('casino-los-notros', 'cp-5', 'Monster Energy', 1890, '/products/monster-clean.png', 30, 'Bebidas', 'Lata 473ml', {
     description:
       'Energía que despierta tus sentidos. Monster Energy en lata combina un sabor intenso y refrescante con una potente mezcla energética, ideal para impulsarte en tus jornadas más largas o darle un boost a tu día.',
     weight: '473ml',
+    sellos: ['azucares'],
   }),
   p('casino-los-notros', 'cp-4', 'Ensalada César', 3500, '/products/cart-ensalada.png', 12, 'Almuerzos', '1 Unidad', {
     description: 'Ensalada fresca con pollo, crutones y aderezo César.',
@@ -54,19 +56,23 @@ export const seedProducts: CommerceProduct[] = [
   p('casino-los-notros', 'cp-2', 'Jumex Piña', 1150, '/products/jumex-clean.png', 0, 'Bebidas', 'Lata 300ml', {
     description: 'Jugo de piña en lata.',
     weight: '300ml',
+    sellos: ['azucares'],
   }),
   p('casino-los-notros', 'cp-1', 'Croissant de Almendras', 2500, '/products/croissant.png', 24, 'Sándwiches', '1 Unidad', {
     description: 'Croissant artesanal relleno de crema de almendras.',
     weight: '120g',
+    sellos: ['calorias', 'grasas-saturadas', 'azucares'],
   }),
   p('casino-los-notros', 'cp-9', 'Sandwich + Coca Cola', 2900, '/products/sandwich-clean.png', 10, 'Sándwiches', '1 Combo', {
     description: 'Sandwich de jamón y queso acompañado de Coca Cola.',
     weight: '1 Combo',
+    sellos: ['calorias', 'grasas-saturadas', 'sodio'],
   }),
   p('casino-los-notros', 'cp-3', 'Coca cola', 1800, '/products/coca-cola.png', 36, 'Bebidas', 'Lata 350ml', {
     description: 'Bebida gaseosa sabor original.',
     weight: '350ml',
     visible: false,
+    sellos: ['azucares'],
   }),
 
   // Casino de Las Araucarias
@@ -88,20 +94,24 @@ export const seedProducts: CommerceProduct[] = [
   p('casino-araucarias', 'ara-croissant', 'Croissant de Almendras', 2600, '/products/croissant.png', 15, 'Sándwiches', '1 Unidad', {
     description: 'Croissant artesanal relleno de crema de almendras.',
     weight: '120g',
+    sellos: ['calorias', 'grasas-saturadas'],
   }),
 
   // Imperio - Food Truck
   p('imperio-food-truck', 'imp-croissant', 'Croissant de Almendras', 2700, '/products/croissant.png', 18, 'Sándwiches', '1 Unidad', {
     description: 'Croissant artesanal relleno de crema de almendras.',
     weight: '120g',
+    sellos: ['calorias', 'grasas-saturadas'],
   }),
   p('imperio-food-truck', 'imp-sandwich', 'Sandwich + Coca Cola', 3100, '/products/sandwich-clean.png', 12, 'Sándwiches', '1 Combo', {
     description: 'Sandwich de jamón y queso acompañado de Coca Cola.',
     weight: '1 Combo',
+    sellos: ['calorias', 'sodio'],
   }),
   p('imperio-food-truck', 'imp-coca', 'Coca cola', 1900, '/products/coca-cola.png', 20, 'Bebidas', 'Lata 350ml', {
     description: 'Bebida gaseosa sabor original.',
     weight: '350ml',
+    sellos: ['azucares'],
   }),
   p('imperio-food-truck', 'imp-cafe', 'Café', 1400, '/products/cafe-clean.png', 8, 'Bebidas', '200ml', {
     description: 'Café caliente de grano seleccionado.',
@@ -117,6 +127,7 @@ export const seedProducts: CommerceProduct[] = [
   p('cafe-de-la-tia', 'tia-croissant', 'Croissant de Almendras', 2800, '/products/croissant.png', 10, 'Sándwiches', '1 Unidad', {
     description: 'Croissant artesanal relleno de crema de almendras.',
     weight: '120g',
+    sellos: ['calorias', 'grasas-saturadas'],
   }),
   p('cafe-de-la-tia', 'tia-agua', 'Agua Mineral', 750, '/products/agua-clean.png', 30, 'Bebidas', 'Botella 500ml', {
     description: 'Agua mineral sin gas.',
@@ -128,6 +139,7 @@ export const seedProducts: CommerceProduct[] = [
   p('kiosko-edificio-d', 'kio-monster', 'Monster Energy', 2000, '/products/monster-clean.png', 14, 'Bebidas', 'Lata 473ml', {
     description: 'Bebida energética en lata.',
     weight: '473ml',
+    sellos: ['azucares'],
   }),
   p('kiosko-edificio-d', 'kio-agua', 'Agua Mineral', 800, '/products/agua-clean.png', 35, 'Bebidas', 'Botella 500ml', {
     description: 'Agua mineral sin gas.',
@@ -137,10 +149,12 @@ export const seedProducts: CommerceProduct[] = [
   p('kiosko-edificio-d', 'kio-jumex', 'Jumex Piña', 1250, '/products/jumex-clean.png', 8, 'Bebidas', 'Lata 300ml', {
     description: 'Jugo de piña en lata.',
     weight: '300ml',
+    sellos: ['azucares'],
   }),
   p('kiosko-edificio-d', 'kio-coca', 'Coca cola', 1900, '/products/coca-cola.png', 22, 'Bebidas', 'Lata 350ml', {
     description: 'Bebida gaseosa sabor original.',
     weight: '350ml',
+    sellos: ['azucares'],
   }),
 ]
 
@@ -164,12 +178,12 @@ const orderDates = {
   o1041: daysAgo(0, 9, 30),
   o1040: daysAgo(0, 11, 45),
   o1039: daysAgo(0, 10, 10),
-  o1038: daysAgo(1, 12, 15),
-  o1037: daysAgo(1, 13, 20),
+  o1038: daysAgo(0, 9, 15),
+  o1037: daysAgo(0, 10, 30),
   o1036: daysAgo(2, 17, 0),
-  o1035: daysAgo(1, 18, 40),
+  o1035: daysAgo(0, 12, 0),
   o1034: daysAgo(3, 16, 10),
-  o1030: daysAgo(3, 12, 30),
+  o1030: daysAgo(0, 13, 0),
   o1027: daysAgo(6, 16, 0),
 }
 
@@ -184,7 +198,7 @@ export const seedOrders: Order[] = [
     createdAt: orderDates.o1042.toISOString(),
     status: 'pendiente',
     paymentMethod: 'Tarjeta de Crédito',
-    total: 4650,
+    total: 4190,
     items: [
       {
         productId: 'cp-4',
@@ -194,11 +208,11 @@ export const seedOrders: Order[] = [
         image: '/products/cart-ensalada.png',
       },
       {
-        productId: 'cp-2',
-        name: 'Jumex Piña',
-        price: 1150,
+        productId: 'cp-6',
+        name: 'Agua Mineral',
+        price: 690,
         quantity: 1,
-        image: '/products/cart-jumex.png',
+        image: '/products/agua-clean.png',
       },
     ],
   },
@@ -465,39 +479,6 @@ export const seedOrders: Order[] = [
 
 export const seedMovements: InventoryMovement[] = [
   {
-    id: 'mv-1',
-    storeId: 'casino-los-notros',
-    productId: 'cp-4',
-    productName: 'Ensalada César',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1042',
-    date: `${displayDate(orderDates.o1042)} · 13:20`,
-    note: 'Descuento por venta',
-  },
-  {
-    id: 'mv-2',
-    storeId: 'casino-los-notros',
-    productId: 'cp-2',
-    productName: 'Jumex Piña',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1042',
-    date: `${displayDate(orderDates.o1042)} · 13:20`,
-    note: 'Descuento por venta',
-  },
-  {
-    id: 'mv-3',
-    storeId: 'casino-los-notros',
-    productId: 'cp-1',
-    productName: 'Croissant de Almendras',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1039',
-    date: `${displayDate(orderDates.o1039)} · 12:05`,
-    note: 'Descuento por venta',
-  },
-  {
     id: 'mv-4',
     storeId: 'casino-los-notros',
     productId: 'cp-1',
@@ -515,7 +496,7 @@ export const seedMovements: InventoryMovement[] = [
     type: 'venta',
     quantity: -2,
     orderId: '1035',
-    date: `${displayDate(orderDates.o1035)} · 18:40`,
+    date: `${displayDate(orderDates.o1035)} · 12:00`,
     note: 'Descuento por venta',
   },
   {
@@ -529,17 +510,6 @@ export const seedMovements: InventoryMovement[] = [
     note: 'Ajuste por merma',
   },
   {
-    id: 'mv-7',
-    storeId: 'casino-los-notros',
-    productId: 'cp-3',
-    productName: 'Coca cola',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1030',
-    date: `${displayDate(orderDates.o1030)} · 15:30`,
-    note: 'Descuento por venta',
-  },
-  {
     id: 'mv-8',
     storeId: 'casino-los-notros',
     productId: 'cp-3',
@@ -550,28 +520,6 @@ export const seedMovements: InventoryMovement[] = [
     note: 'Reposición de stock',
   },
   {
-    id: 'mv-9',
-    storeId: 'casino-araucarias',
-    productId: 'ara-ensalada',
-    productName: 'Ensalada César',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1041',
-    date: `${displayDate(orderDates.o1041)} · 09:30`,
-    note: 'Descuento por venta',
-  },
-  {
-    id: 'mv-10',
-    storeId: 'casino-araucarias',
-    productId: 'ara-agua',
-    productName: 'Agua Mineral',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1041',
-    date: `${displayDate(orderDates.o1041)} · 09:30`,
-    note: 'Descuento por venta',
-  },
-  {
     id: 'mv-11',
     storeId: 'casino-araucarias',
     productId: 'ara-croissant',
@@ -579,7 +527,7 @@ export const seedMovements: InventoryMovement[] = [
     type: 'venta',
     quantity: -2,
     orderId: '1038',
-    date: `${displayDate(orderDates.o1038)} · 12:15`,
+    date: `${displayDate(orderDates.o1038)} · 09:15`,
     note: 'Descuento por venta',
   },
   {
@@ -590,7 +538,7 @@ export const seedMovements: InventoryMovement[] = [
     type: 'venta',
     quantity: -2,
     orderId: '1038',
-    date: `${displayDate(orderDates.o1038)} · 12:15`,
+    date: `${displayDate(orderDates.o1038)} · 09:15`,
     note: 'Descuento por venta',
   },
   {
@@ -616,38 +564,6 @@ export const seedMovements: InventoryMovement[] = [
     note: 'Descuento por venta',
   },
   {
-    id: 'mv-15',
-    storeId: 'casino-araucarias',
-    productId: 'ara-ensalada',
-    productName: 'Ensalada César',
-    type: 'reposicion',
-    quantity: 6,
-    date: `${displayDate(daysAgo(3, 8, 0))} · 08:00`,
-    note: 'Reposición de stock',
-  },
-  {
-    id: 'mv-16',
-    storeId: 'imperio-food-truck',
-    productId: 'imp-sandwich',
-    productName: 'Sandwich + Coca Cola',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1040',
-    date: `${displayDate(orderDates.o1040)} · 11:45`,
-    note: 'Descuento por venta',
-  },
-  {
-    id: 'mv-17',
-    storeId: 'imperio-food-truck',
-    productId: 'imp-coca',
-    productName: 'Coca cola',
-    type: 'venta',
-    quantity: -1,
-    orderId: '1040',
-    date: `${displayDate(orderDates.o1040)} · 11:45`,
-    note: 'Descuento por venta',
-  },
-  {
     id: 'mv-18',
     storeId: 'imperio-food-truck',
     productId: 'imp-croissant',
@@ -655,7 +571,7 @@ export const seedMovements: InventoryMovement[] = [
     type: 'venta',
     quantity: -1,
     orderId: '1037',
-    date: `${displayDate(orderDates.o1037)} · 13:20`,
+    date: `${displayDate(orderDates.o1037)} · 10:30`,
     note: 'Descuento por venta',
   },
   {
@@ -666,7 +582,7 @@ export const seedMovements: InventoryMovement[] = [
     type: 'venta',
     quantity: -2,
     orderId: '1037',
-    date: `${displayDate(orderDates.o1037)} · 13:20`,
+    date: `${displayDate(orderDates.o1037)} · 10:30`,
     note: 'Descuento por venta',
   },
   {
@@ -688,6 +604,16 @@ export const seedMovements: InventoryMovement[] = [
     type: 'reposicion',
     quantity: 6,
     date: `${displayDate(daysAgo(3, 8, 30))} · 08:30`,
+    note: 'Reposición de stock',
+  },
+  {
+    id: 'mv-22',
+    storeId: 'casino-araucarias',
+    productId: 'ara-ensalada',
+    productName: 'Ensalada César',
+    type: 'reposicion',
+    quantity: 6,
+    date: `${displayDate(daysAgo(3, 8, 0))} · 08:00`,
     note: 'Reposición de stock',
   },
 ]

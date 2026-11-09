@@ -11,6 +11,8 @@ export type Category = {
   label: string
 }
 
+export type Seal = 'calorias' | 'grasas-saturadas' | 'sodio' | 'azucares'
+
 export type Product = {
   id: string
   name: string
@@ -18,14 +20,18 @@ export type Product = {
   price: number
   image: string
   stock: number
+  available?: number
+  reserved?: number
   category: Exclude<CategoryId, 'todo'>
   sinSellos?: boolean
+  sellos?: Seal[]
 }
 
 export type Store = {
   id: string
   name: string
   address?: string
+  image?: string
 }
 
 export type User = {
@@ -46,11 +52,26 @@ export type CommerceProduct = {
   image: string
   visible: boolean
   stock: number
+  reserved?: number
+  available?: number
   description?: string
   category?: string
   weight?: string
   unit?: string
   sinSellos?: boolean
+  sellos?: Seal[]
+}
+
+export type Reservation = {
+  id: string
+  storeId: string
+  productId: string
+  customerId: string
+  quantity: number
+  orderId?: string
+  status: 'cart' | 'order'
+  createdAt: string
+  updatedAt: string
 }
 
 export type OrderStatus = 'pendiente' | 'retirado' | 'cancelado'

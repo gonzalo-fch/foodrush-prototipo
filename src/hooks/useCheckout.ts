@@ -7,7 +7,7 @@ import { useCommerceStore } from '../store/CommerceStore'
 
 export function useCheckout() {
   const navigate = useNavigate()
-  const { currentUser, selectedStore, clearCart } = useClientStore()
+  const { currentUser, selectedStore, resetCart } = useClientStore()
   const { items } = useCart()
   const { createOrder } = useAppStore()
   const { getStoreSettings } = useCommerceStore()
@@ -45,7 +45,7 @@ export function useCheckout() {
         })),
       })
 
-      clearCart()
+      resetCart()
       showToast('Compra realizada correctamente')
       navigate(`/qr/${order.id}`)
     } catch (error) {

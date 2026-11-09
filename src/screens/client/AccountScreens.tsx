@@ -157,18 +157,27 @@ export function PurchasesPage() {
         message={
           <>
             ¿Seguro que quieres cancelar la orden{' '}
-            <strong className="text-ink">#{toCancel?.id}</strong>? El stock será repuesto y el QR de
-            retiro dejará de estar disponible.
+            <strong className="text-ink">#{toCancel?.id}</strong>? Se liberará la reserva de stock y
+            el QR de retiro dejará de estar disponible.
           </>
         }
         confirmLabel="Cancelar compra"
         cancelLabel="Volver"
         onClose={() => setToCancel(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!toCancel) return
-          cancelOrder(toCancel.id)
-          showToast('Compra cancelada y stock repuesto', 'info')
-          setToCancel(null)
+          try {
+            await cancelOrder(toCancel.id)
+            showToast('Compra cancelada y reserva liberada', 'info')
+            setToCancel(null)
+          } catch (requestError) {
+            showToast(
+              requestError instanceof Error
+                ? requestError.message
+                : 'No se pudo cancelar la compra',
+              'error',
+            )
+          }
         }}
       />
     </AppShell>
@@ -425,8 +434,8 @@ export function ProfilePage() {
 
         <button
           type="button"
-          onClick={() => {
-            logout()
+          onClick={async () => {
+            await logout()
             navigate('/login')
           }}
           className="mt-6 flex h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-red-50 text-[17px] font-bold text-red-500"

@@ -39,9 +39,12 @@ export function CatalogPage() {
           unit: product.unit ?? product.weight ?? '1 Unidad',
           price: product.price,
           image: product.image,
-          stock: product.stock,
+          stock: product.available ?? product.stock,
           category: categoryMap[product.category ?? ''] ?? 'bebidas',
-          sinSellos: product.sinSellos,
+          sinSellos: product.sellos?.length
+            ? false
+            : product.sinSellos ?? true,
+          sellos: product.sellos,
         })),
     [products, selectedStore.id],
   )
@@ -65,12 +68,18 @@ export function CatalogPage() {
     })
   }, [activeCategory, catalogProducts, search])
 
-  function handleAddToCart(product: Product) {
+  async function handleAddToCart(product: Product) {
     if (product.stock <= 0) {
       showToast(`${product.name} está agotado`, 'error')
       return
     }
-    addToCart(product.id)
+
+    const result = await addToCart(product.id)
+    if (!result.ok) {
+      showToast(result.error, 'error')
+      return
+    }
+
     showToast(`${product.name} agregado al carrito`)
   }
 

@@ -26,6 +26,7 @@ type AppStoreValue = StoreState & {
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
+  applyProducts: (products: CommerceProduct[]) => void
   addProduct: (input: AddProductPayload) => Promise<void>
   updateProduct: (id: string, input: UpdateProductPayload) => Promise<void>
   deleteProduct: (id: string) => Promise<void>
@@ -74,6 +75,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [apply])
 
+  const applyProducts = useCallback((products: CommerceProduct[]) => {
+    setState((current) => ({ ...current, products }))
+  }, [])
+
   useEffect(() => {
     void refresh()
 
@@ -98,6 +103,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         apply(await action())
       } catch (requestError) {
         setError(messageOf(requestError))
+        throw requestError
       }
     }
 
@@ -117,6 +123,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       refresh,
+      applyProducts,
       addProduct: (input) => run(() => api.addProduct(input)),
       updateProduct: (id, input) => run(() => api.updateProduct(id, input)),
       deleteProduct: (id) => run(() => api.deleteProduct(id)),
@@ -126,7 +133,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       cancelOrder: (id) => run(() => api.cancelOrder(id)),
       createOrder,
     }
-  }, [apply, error, loading, refresh, state])
+  }, [apply, applyProducts, error, loading, refresh, state])
 
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>
 }

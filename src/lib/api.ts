@@ -1,4 +1,4 @@
-import type { CommerceProduct, InventoryMovement, Order } from '../types'
+import type { CommerceProduct, InventoryMovement, Order, Seal } from '../types'
 
 export type BootstrapPayload = {
   products: CommerceProduct[]
@@ -8,6 +8,18 @@ export type BootstrapPayload = {
 
 type OrderPayload = BootstrapPayload & { order: Order }
 type ProductPayload = BootstrapPayload & { product: CommerceProduct }
+export type CartPayload = {
+  products: CommerceProduct[]
+  cart: Array<{ productId: string; quantity: number }>
+}
+
+export type SetCartItemPayload = {
+  customerId: string
+  storeId: string
+  productId: string
+  quantity: number
+  mode?: 'set' | 'add'
+}
 
 export type CreateOrderPayload = {
   customer: string
@@ -29,6 +41,7 @@ export type AddProductPayload = {
   unit?: string
   image?: string
   visible?: boolean
+  sellos?: Seal[]
 }
 
 export type UpdateProductPayload = Partial<Omit<CommerceProduct, 'id'>>
@@ -60,6 +73,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   bootstrap: () => request<BootstrapPayload>('/bootstrap'),
+  getCart: (customerId: string, storeId: string) =>
+    request<CartPayload>(
+      `/cart?customerId=${encodeURIComponent(customerId)}&storeId=${encodeURIComponent(storeId)}`,
+    ),
+  setCartItem: (input: SetCartItemPayload) =>
+    request<CartPayload>('/cart/items', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+  removeCartItem: (customerId: string, storeId: string, productId: string) =>
+    request<CartPayload>(
+      `/cart/items/${encodeURIComponent(productId)}?customerId=${encodeURIComponent(customerId)}&storeId=${encodeURIComponent(storeId)}`,
+      { method: 'DELETE' },
+    ),
+  clearCart: (customerId: string, storeId: string) =>
+    request<CartPayload>(
+      `/cart?customerId=${encodeURIComponent(customerId)}&storeId=${encodeURIComponent(storeId)}`,
+      { method: 'DELETE' },
+    ),
   createOrder: (input: CreateOrderPayload) =>
     request<OrderPayload>('/orders', {
       method: 'POST',

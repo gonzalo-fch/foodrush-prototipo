@@ -7,7 +7,9 @@ import {
   type ReactNode,
 } from 'react'
 import { stores, users as seedUsers } from '../data/seed'
+import { api } from '../lib/api'
 import type { Store, User } from '../types'
+import { useAppStore } from './AppStore'
 
 type CartLine = {
   productId: string
@@ -25,6 +27,7 @@ type ClientState = {
 }
 
 type AuthResult = { ok: true } | { ok: false; error: string }
+type ActionResult = { ok: true } | { ok: false; error: string }
 
 type RegisterInput = {
   name: string
@@ -43,27 +46,25 @@ type ClientStoreValue = {
   pushNotifications: boolean
   login: (email: string, password: string) => AuthResult
   register: (input: RegisterInput) => AuthResult
-  logout: () => void
-  selectStore: (storeId: string) => void
-  addToCart: (productId: string, quantity?: number) => void
-  setCartQuantity: (productId: string, quantity: number) => void
-  removeFromCart: (productId: string) => void
-  clearCart: () => void
+  logout: () => Promise<void>
+  selectStore: (storeId: string) => Promise<void>
+  addToCart: (productId: string, quantity?: number) => Promise<ActionResult>
+  setCartQuantity: (productId: string, quantity: number) => Promise<ActionResult>
+  removeFromCart: (productId: string) => Promise<ActionResult>
+  clearCart: () => Promise<ActionResult>
+  resetCart: () => void
   toggleFavorite: (productId: string) => void
   markNotificationRead: (id: string) => void
   markAllNotificationsRead: (ids: string[]) => void
   setPushNotifications: (value: boolean) => void
 }
 
-const STORAGE_KEY = 'foodrush-client-v1'
+const STORAGE_KEY = 'foodrush-client-v2'
 
 const defaultState: ClientState = {
   users: seedUsers,
   currentUserId: null,
-  cart: [
-    { productId: 'cp-4', quantity: 1 },
-    { productId: 'cp-8', quantity: 1 },
-  ],
+  cart: [],
   favorites: ['cp-9', 'cp-6', 'cp-4', 'cp-2'],
   selectedStoreId: 'casino-los-notros',
   readNotificationIds: [],
@@ -81,7 +82,7 @@ function loadState(): ClientState {
     return {
       users: parsed.users?.length ? parsed.users : defaultState.users,
       currentUserId: parsed.currentUserId ?? null,
-      cart: parsed.cart ?? defaultState.cart,
+      cart: parsed.cart ?? [],
       favorites: parsed.favorites ?? defaultState.favorites,
       selectedStoreId: parsed.selectedStoreId ?? defaultState.selectedStoreId,
       readNotificationIds: parsed.readNotificationIds ?? [],
@@ -92,18 +93,46 @@ function loadState(): ClientState {
   }
 }
 
+function messageOf(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : 'No se pudo completar la operación.'
+}
+
 export function ClientStoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ClientState>(loadState)
+  const { applyProducts } = useAppStore()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
-  const value = useMemo<ClientStoreValue>(() => {
-    const currentUser = state.users.find((user) => user.id === state.currentUserId) ?? null
-    const selectedStore =
-      stores.find((store) => store.id === state.selectedStoreId) ?? stores[0]
+  const currentUser =
+    state.users.find((user) => user.id === state.currentUserId) ?? null
+  const selectedStore =
+    stores.find((store) => store.id === state.selectedStoreId) ?? stores[0]
 
+  useEffect(() => {
+    if (!currentUser) return
+
+    let active = true
+    const storeId = selectedStore.id
+
+    api
+      .getCart(currentUser.id, storeId)
+      .then((payload) => {
+        if (!active) return
+        setState((current) => ({ ...current, cart: payload.cart }))
+        applyProducts(payload.products)
+      })
+      .catch(() => {})
+
+    return () => {
+      active = false
+    }
+  }, [applyProducts, currentUser, selectedStore.id])
+
+  const value = useMemo<ClientStoreValue>(() => {
     function login(email: string, password: string): AuthResult {
       const normalized = email.trim().toLowerCase()
       const user = state.users.find(
@@ -123,7 +152,9 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
 
     function register(input: RegisterInput): AuthResult {
       const normalized = input.email.trim().toLowerCase()
-      const exists = state.users.some((entry) => entry.email?.toLowerCase() === normalized)
+      const exists = state.users.some(
+        (entry) => entry.email?.toLowerCase() === normalized,
+      )
       if (exists) {
         return { ok: false, error: 'Ya existe una cuenta con ese correo.' }
       }
@@ -141,57 +172,127 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         users: [...current.users, user],
         currentUserId: user.id,
         selectedStoreId: current.selectedStoreId || stores[0].id,
+        cart: [],
       }))
 
       return { ok: true }
     }
 
-    function logout() {
-      setState((current) => ({ ...current, currentUserId: null, cart: [] }))
+    async function logout() {
+      if (currentUser) {
+        try {
+          await api.clearCart(currentUser.id, selectedStore.id)
+        } catch {
+          // La sesión se cierra aunque falle la liberación remota.
+        }
+      }
+      setState((current) => ({
+        ...current,
+        currentUserId: null,
+        cart: [],
+      }))
     }
 
-    function selectStore(storeId: string) {
-      setState((current) =>
-        current.selectedStoreId === storeId
-          ? current
-          : { ...current, selectedStoreId: storeId, cart: [] },
+    async function selectStore(storeId: string) {
+      if (storeId === state.selectedStoreId) return
+
+      if (currentUser) {
+        try {
+          await api.clearCart(currentUser.id, state.selectedStoreId)
+        } catch {
+          // El cambio de comercio continúa aunque falle la liberación remota.
+        }
+      }
+
+      setState((current) => ({
+        ...current,
+        selectedStoreId: storeId,
+        cart: [],
+      }))
+    }
+
+    async function applyCart(
+      action: () => Promise<{
+        products: Parameters<typeof applyProducts>[0]
+        cart: CartLine[]
+      }>,
+    ): Promise<ActionResult> {
+      if (!currentUser) {
+        return { ok: false, error: 'Debes iniciar sesión para reservar productos.' }
+      }
+
+      try {
+        const payload = await action()
+        setState((current) => ({ ...current, cart: payload.cart }))
+        applyProducts(payload.products)
+        return { ok: true }
+      } catch (requestError) {
+        return { ok: false, error: messageOf(requestError) }
+      }
+    }
+
+    async function addToCart(
+      productId: string,
+      quantity = 1,
+    ): Promise<ActionResult> {
+      if (!currentUser) {
+        return { ok: false, error: 'Debes iniciar sesión para reservar productos.' }
+      }
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        return { ok: false, error: 'La cantidad debe ser mayor que cero.' }
+      }
+
+      return applyCart(() =>
+        api.setCartItem({
+          customerId: currentUser.id,
+          storeId: selectedStore.id,
+          productId,
+          quantity,
+          mode: 'add',
+        }),
       )
     }
 
-    function addToCart(productId: string, quantity = 1) {
-      setState((current) => {
-        const existing = current.cart.find((line) => line.productId === productId)
-        const cart = existing
-          ? current.cart.map((line) =>
-              line.productId === productId
-                ? { ...line, quantity: line.quantity + quantity }
-                : line,
-            )
-          : [...current.cart, { productId, quantity }]
-        return { ...current, cart }
-      })
+    async function setCartQuantity(
+      productId: string,
+      quantity: number,
+    ): Promise<ActionResult> {
+      if (!currentUser) {
+        return { ok: false, error: 'Debes iniciar sesión para reservar productos.' }
+      }
+
+      return applyCart(() =>
+        api.setCartItem({
+          customerId: currentUser.id,
+          storeId: selectedStore.id,
+          productId,
+          quantity,
+        }),
+      )
     }
 
-    function setCartQuantity(productId: string, quantity: number) {
-      setState((current) => ({
-        ...current,
-        cart:
-          quantity <= 0
-            ? current.cart.filter((line) => line.productId !== productId)
-            : current.cart.map((line) =>
-                line.productId === productId ? { ...line, quantity } : line,
-              ),
-      }))
+    async function removeFromCart(productId: string): Promise<ActionResult> {
+      if (!currentUser) {
+        return { ok: false, error: 'Debes iniciar sesión para reservar productos.' }
+      }
+
+      return applyCart(() =>
+        api.removeCartItem(currentUser.id, selectedStore.id, productId),
+      )
     }
 
-    function removeFromCart(productId: string) {
-      setState((current) => ({
-        ...current,
-        cart: current.cart.filter((line) => line.productId !== productId),
-      }))
+    async function clearCart(): Promise<ActionResult> {
+      if (!currentUser) {
+        setState((current) => ({ ...current, cart: [] }))
+        return { ok: true }
+      }
+
+      return applyCart(() =>
+        api.clearCart(currentUser.id, selectedStore.id),
+      )
     }
 
-    function clearCart() {
+    function resetCart() {
       setState((current) => ({ ...current, cart: [] }))
     }
 
@@ -208,14 +309,19 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       setState((current) =>
         current.readNotificationIds.includes(id)
           ? current
-          : { ...current, readNotificationIds: [...current.readNotificationIds, id] },
+          : {
+              ...current,
+              readNotificationIds: [...current.readNotificationIds, id],
+            },
       )
     }
 
     function markAllNotificationsRead(ids: string[]) {
       setState((current) => ({
         ...current,
-        readNotificationIds: Array.from(new Set([...current.readNotificationIds, ...ids])),
+        readNotificationIds: Array.from(
+          new Set([...current.readNotificationIds, ...ids]),
+        ),
       }))
     }
 
@@ -242,14 +348,19 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       setCartQuantity,
       removeFromCart,
       clearCart,
+      resetCart,
       toggleFavorite,
       markNotificationRead,
       markAllNotificationsRead,
       setPushNotifications,
     }
-  }, [state])
+  }, [applyProducts, currentUser, selectedStore, state])
 
-  return <ClientStoreContext.Provider value={value}>{children}</ClientStoreContext.Provider>
+  return (
+    <ClientStoreContext.Provider value={value}>
+      {children}
+    </ClientStoreContext.Provider>
+  )
 }
 
 export function useClientStore() {

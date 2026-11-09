@@ -16,7 +16,8 @@ import { Toggle } from '../../components/Toggle'
 import { useToast } from '../../components/ToastProvider'
 import { useAppStore } from '../../store/AppStore'
 import { useCommerceStore } from '../../store/CommerceStore'
-import type { CommerceProduct } from '../../types'
+import { SEALS } from '../../lib/seals'
+import type { CommerceProduct, Seal } from '../../types'
 import { formatCLP } from '../../lib/format'
 import { ErrorStatePage } from '../ErrorStatePage'
 
@@ -37,17 +38,26 @@ export function ProductManagementPage() {
     )
   }, [products, search, storeId])
 
-  function changeStock(product: CommerceProduct, delta: number) {
+  async function changeStock(product: CommerceProduct, delta: number) {
     if (delta < 0 && product.stock <= 0) {
       showToast('El stock no puede ser negativo', 'error')
       return
     }
 
-    adjustStock(product.id, delta)
-    const nextStock = Math.max(0, product.stock + delta)
-    showToast(
-      `Stock de ${product.name}: ${nextStock} ${nextStock === 1 ? 'unidad' : 'unidades'}`,
-    )
+    try {
+      await adjustStock(product.id, delta)
+      const nextStock = Math.max(0, product.stock + delta)
+      showToast(
+        `Stock de ${product.name}: ${nextStock} ${nextStock === 1 ? 'unidad' : 'unidades'}`,
+      )
+    } catch (requestError) {
+      showToast(
+        requestError instanceof Error
+          ? requestError.message
+          : 'No se pudo ajustar el stock',
+        'error',
+      )
+    }
   }
 
   return (
@@ -88,9 +98,8 @@ export function ProductManagementPage() {
                     {formatCLP(product.price)}
                   </p>
                   <p className="mt-1 text-[13px] font-medium text-slate-500">
-                    {product.stock === 0
-                      ? 'Sin stock'
-                      : `${product.stock} ${product.stock === 1 ? 'unidad disponible' : 'unidades disponibles'}`}
+                    Stock: {product.stock} · Reservadas: {product.reserved ?? 0} · Libres:{' '}
+                    {product.available ?? product.stock}
                   </p>
                 </div>
                 <div className="shrink-0 space-y-2">
@@ -98,12 +107,23 @@ export function ProductManagementPage() {
                     <span className="text-[13px] font-medium text-slate-500">Visible</span>
                     <Toggle
                       checked={product.visible}
-                      onChange={(visible) => {
-                        setVisibility(product.id, visible)
-                        showToast(
-                          visible ? 'Producto visible en el catálogo' : 'Producto oculto del catálogo',
-                          'info',
-                        )
+                      onChange={async (visible) => {
+                        try {
+                          await setVisibility(product.id, visible)
+                          showToast(
+                            visible
+                              ? 'Producto visible en el catálogo'
+                              : 'Producto oculto del catálogo',
+                            'info',
+                          )
+                        } catch (requestError) {
+                          showToast(
+                            requestError instanceof Error
+                              ? requestError.message
+                              : 'No se pudo cambiar la visibilidad',
+                            'error',
+                          )
+                        }
                       }}
                     />
                   </div>
@@ -185,11 +205,20 @@ export function ProductManagementPage() {
         }
         confirmLabel="Eliminar"
         onClose={() => setToDelete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!toDelete) return
-          deleteProduct(toDelete.id)
-          showToast('Producto eliminado', 'info')
-          setToDelete(null)
+          try {
+            await deleteProduct(toDelete.id)
+            showToast('Producto eliminado', 'info')
+            setToDelete(null)
+          } catch (requestError) {
+            showToast(
+              requestError instanceof Error
+                ? requestError.message
+                : 'No se pudo eliminar el producto',
+              'error',
+            )
+          }
         }}
       />
     </div>
@@ -204,6 +233,7 @@ type FormState = {
   category: string
   weight: string
   visible: boolean
+  sellos: Seal[]
 }
 
 const emptyForm: FormState = {
@@ -214,6 +244,7 @@ const emptyForm: FormState = {
   category: 'Galletas',
   weight: '',
   visible: true,
+  sellos: [],
 }
 
 function validate(form: FormState) {
@@ -262,25 +293,35 @@ export function AddProductPage() {
     }
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validate(form)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    addProduct({
-      storeId,
-      name: form.name,
-      description: form.description,
-      price: Number(form.price),
-      stock: Number(form.stock),
-      category: form.category,
-      weight: form.weight,
-      visible: form.visible,
-      image: image ?? '/products/croissant.png',
-    })
-    showToast('Producto guardado correctamente')
-    navigate('/comercio/productos')
+    try {
+      await addProduct({
+        storeId,
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        stock: Number(form.stock),
+        category: form.category,
+        weight: form.weight,
+        visible: form.visible,
+        sellos: form.sellos,
+        image: image ?? '/products/croissant.png',
+      })
+      showToast('Producto guardado correctamente')
+      navigate('/comercio/productos')
+    } catch (requestError) {
+      showToast(
+        requestError instanceof Error
+          ? requestError.message
+          : 'No se pudo guardar el producto',
+        'error',
+      )
+    }
   }
 
   return (
@@ -381,12 +422,20 @@ export function AddProductPage() {
 
         <div className="mt-4 rounded-xl border border-slate-200 px-4 py-4">
           <h2 className="text-[18px] font-extrabold text-ink">Etiquetado de alimentos</h2>
-          <div className="mt-3 space-y-4">
-            <ToggleRow label="Alto en Azúcares" defaultOn />
-            <ToggleRow label="Alto en Sodio" defaultOn={false} />
-            <ToggleRow label="Alto en Grasas Saturadas" defaultOn />
-            <ToggleRow label="Alto en Calorías" defaultOn />
-          </div>
+          <p className="mt-1 text-[13px] font-medium text-slate-500">
+            Selecciona los sellos que correspondan según la normativa chilena.
+          </p>
+          <SealToggles
+            value={form.sellos}
+            onChange={(seal, checked) =>
+              setForm((current) => ({
+                ...current,
+                sellos: checked
+                  ? [...current.sellos, seal]
+                  : current.sellos.filter((id) => id !== seal),
+              }))
+            }
+          />
         </div>
 
         <div className="mt-6 space-y-4">
@@ -403,11 +452,24 @@ export function AddProductPage() {
   )
 }
 
-function ToggleRow({ label, defaultOn = true }: { label: string; defaultOn?: boolean }) {
+function SealToggles({
+  value,
+  onChange,
+}: {
+  value: Seal[]
+  onChange: (seal: Seal, checked: boolean) => void
+}) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-[15px] font-medium text-ink">{label}</span>
-      <Toggle defaultOn={defaultOn} />
+    <div className="mt-3 space-y-4">
+      {SEALS.map((seal) => (
+        <div key={seal.id} className="flex items-center justify-between gap-3">
+          <span className="text-[15px] font-medium text-ink">{seal.label}</span>
+          <Toggle
+            checked={value.includes(seal.id)}
+            onChange={(checked) => onChange(seal.id, checked)}
+          />
+        </div>
+      ))}
     </div>
   )
 }
@@ -452,6 +514,7 @@ export function EditProductPage() {
       category: product.category ?? 'Bebidas',
       weight: product.weight ?? '',
       visible: product.visible,
+      sellos: product.sellos ?? [],
     })
   }, [product])
 
@@ -474,7 +537,7 @@ export function EditProductPage() {
     }
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!product) return
 
@@ -482,18 +545,28 @@ export function EditProductPage() {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    updateProduct(product.id, {
-      name: form.name,
-      description: form.description,
-      price: Number(form.price),
-      stock: Number(form.stock),
-      category: form.category,
-      weight: form.weight,
-      visible: form.visible,
-      image,
-    })
-    showToast('Cambios guardados correctamente')
-    navigate('/comercio/productos')
+    try {
+      await updateProduct(product.id, {
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        stock: Number(form.stock),
+        category: form.category,
+        weight: form.weight,
+        visible: form.visible,
+        sellos: form.sellos,
+        image,
+      })
+      showToast('Cambios guardados correctamente')
+      navigate('/comercio/productos')
+    } catch (requestError) {
+      showToast(
+        requestError instanceof Error
+          ? requestError.message
+          : 'No se pudieron guardar los cambios',
+        'error',
+      )
+    }
   }
 
   return (
@@ -583,6 +656,24 @@ export function EditProductPage() {
             <Toggle checked={form.visible} onChange={(visible) => setField('visible', visible)} />
           </div>
 
+          <div className="rounded-xl border border-slate-200 px-4 py-4">
+            <h2 className="text-[18px] font-extrabold text-ink">Etiquetado de alimentos</h2>
+            <p className="mt-1 text-[13px] font-medium text-slate-500">
+              Selecciona los sellos que correspondan según la normativa chilena.
+            </p>
+            <SealToggles
+              value={form.sellos}
+              onChange={(seal, checked) =>
+                setForm((current) => ({
+                  ...current,
+                  sellos: checked
+                    ? [...current.sellos, seal]
+                    : current.sellos.filter((id) => id !== seal),
+                }))
+              }
+            />
+          </div>
+
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
@@ -607,10 +698,19 @@ export function EditProductPage() {
         }
         confirmLabel="Eliminar"
         onClose={() => setConfirmDelete(false)}
-        onConfirm={() => {
-          deleteProduct(product.id)
-          showToast('Producto eliminado', 'info')
-          navigate('/comercio/productos')
+        onConfirm={async () => {
+          try {
+            await deleteProduct(product.id)
+            showToast('Producto eliminado', 'info')
+            navigate('/comercio/productos')
+          } catch (requestError) {
+            showToast(
+              requestError instanceof Error
+                ? requestError.message
+                : 'No se pudo eliminar el producto',
+              'error',
+            )
+          }
         }}
       />
     </AppShell>

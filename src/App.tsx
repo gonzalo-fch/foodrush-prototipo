@@ -10,7 +10,12 @@ import {
   ProfilePage,
   PurchasesPage,
 } from './screens/client/AccountScreens'
-import { ClientLogin, ClientRegister, StoreSelector } from './screens/client/AuthScreens'
+import {
+  ClientLogin,
+  ClientRegister,
+  StoreSearchPage,
+  StoreSelector,
+} from './screens/client/AuthScreens'
 import { FavoritesPage, ProductDetailPage } from './screens/client/CatalogScreens'
 import {
   CardChoicePage,
@@ -49,6 +54,7 @@ export default function App() {
 
               <Route element={<RequireClientAuth />}>
                 <Route path="/seleccionar-comercio" element={<StoreSelector />} />
+                <Route path="/buscar-comercio" element={<StoreSearchPage />} />
 
                 <Route element={<ClientLayout />}>
                   <Route path="/catalogo" element={<CatalogPage />} />

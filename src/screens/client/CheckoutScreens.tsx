@@ -40,23 +40,31 @@ export function CartPage() {
   const { open } = getStoreSettings(selectedStore.id)
   const [error, setError] = useState('')
 
-  function changeQuantity(productId: string, delta: number) {
+  async function changeQuantity(productId: string, delta: number) {
     const entry = items.find((item) => item.product.id === productId)
     if (!entry) return
 
     const next = entry.quantity + delta
     if (next < 1) return
-    if (next > entry.product.stock) {
+
+    const available = entry.product.available ?? entry.product.stock
+    const max = available + entry.quantity
+    if (delta > 0 && next > max) {
       setError(
-        `Solo hay ${entry.product.stock} ${
-          entry.product.stock === 1 ? 'unidad' : 'unidades'
-        } de ${entry.product.name} disponibles.`,
+        `Solo puedes tener ${max} ${
+          max === 1 ? 'unidad' : 'unidades'
+        } de ${entry.product.name}.`,
       )
       return
     }
 
+    const result = await setCartQuantity(productId, next)
+    if (!result.ok) {
+      setError(result.error)
+      return
+    }
+
     setError('')
-    setCartQuantity(productId, next)
   }
 
   function continueToPayment() {
@@ -66,11 +74,6 @@ export function CartPage() {
     }
     if (error) {
       showToast(error, 'error')
-      return
-    }
-    const invalid = items.find((item) => item.quantity > item.product.stock)
-    if (invalid) {
-      showToast(`Stock insuficiente de ${invalid.product.name}`, 'error')
       return
     }
     if (!open) {
@@ -89,9 +92,9 @@ export function CartPage() {
           <button
             type="button"
             aria-label="Vaciar carrito"
-            onClick={() => {
-              clearCart()
-              setError('')
+            onClick={async () => {
+              const result = await clearCart()
+              setError(result.ok ? '' : result.error)
             }}
             className="text-brand"
           >
@@ -122,7 +125,7 @@ export function CartPage() {
                         {formatCLP(product.price)}
                       </p>
                       <p className="mt-0.5 text-[12px] font-medium text-slate-400">
-                        {product.stock} disponibles
+                        Reservadas: {quantity} · Libres: {product.available ?? product.stock}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2.5">
@@ -149,9 +152,9 @@ export function CartPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      removeFromCart(product.id)
-                      setError('')
+                    onClick={async () => {
+                      const result = await removeFromCart(product.id)
+                      setError(result.ok ? '' : result.error)
                     }}
                     className="ml-auto mt-3 flex items-center gap-1.5 text-[15px] font-bold text-red-500"
                   >
@@ -404,10 +407,10 @@ export function CardFormPage() {
   const { subtotal, selectedStore } = useCart()
   const completeCheckout = useCheckout()
   const [cardType, setCardType] = useState<'debito' | 'credito'>('credito')
-  const [number, setNumber] = useState('')
-  const [holder, setHolder] = useState('')
-  const [expiry, setExpiry] = useState('')
-  const [cvv, setCvv] = useState('')
+  const [number, setNumber] = useState('4111 1111 1111 1111')
+  const [holder, setHolder] = useState('CLIENTE DEMO')
+  const [expiry, setExpiry] = useState('12/30')
+  const [cvv, setCvv] = useState('123')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -431,7 +434,11 @@ export function CardFormPage() {
       <PageHeader title="Crédito o Débito" backTo="/eleccion-pago" />
 
       <form onSubmit={handleSubmit} className="px-4 pt-6">
-        <h1 className="text-[30px] font-extrabold leading-tight text-ink">Ingresa tus Datos</h1>
+        <h1 className="text-[30px] font-extrabold leading-tight text-ink">Pago simulado</h1>
+
+        <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-[13px] font-medium leading-snug text-amber-600">
+          No ingreses datos reales. Este formulario usa datos de prueba y no procesa cobros.
+        </div>
 
         <SummaryCard subtotal={subtotal} className="mt-5" />
 
@@ -503,11 +510,11 @@ export function CardFormPage() {
 
         <p className="mt-5 flex items-center justify-center gap-2 text-[15px] font-medium text-slate-400">
           <Lock size={17} />
-          Pago seguro y encriptado.
+          Simulación de pago para la demostración.
         </p>
 
         <div className="mt-4 pb-6">
-          <PrimaryButton type="submit">Pagar {formatCLP(subtotal)}</PrimaryButton>
+          <PrimaryButton type="submit">Pagar simulado {formatCLP(subtotal)}</PrimaryButton>
         </div>
       </form>
     </AppShell>

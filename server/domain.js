@@ -35,9 +35,37 @@ export function buildMovement(product, type, quantity, note, orderId) {
   }
 }
 
+const SEAL_VALUES = new Set([
+  'calorias',
+  'grasas-saturadas',
+  'sodio',
+  'azucares',
+])
+
+export function normalizeSellos(value) {
+  if (!Array.isArray(value)) return []
+  return Array.from(new Set(value.filter((seal) => SEAL_VALUES.has(seal))))
+}
+
+export function withAvailability(product) {
+  const stock = Math.max(0, Number(product.stock) || 0)
+  const reserved = Math.max(0, Number(product.reserved) || 0)
+  const sellos = normalizeSellos(product.sellos)
+
+  return {
+    ...product,
+    stock,
+    reserved,
+    available: Math.max(0, stock - reserved),
+    sellos,
+    sinSellos: sellos.length === 0,
+  }
+}
+
 export function buildProduct(input) {
   const price = Number(input.price)
   const stock = Math.floor(Number(input.stock))
+  const sellos = normalizeSellos(input.sellos)
 
   if (!input.storeId) throw httpError(400, 'Falta el comercio del producto.')
   if (!input.name?.trim()) throw httpError(400, 'Ingresa el nombre del producto.')
@@ -60,7 +88,9 @@ export function buildProduct(input) {
     unit: input.unit,
     image: input.image ?? '/products/croissant.png',
     visible: input.visible ?? true,
-    sinSellos: input.sinSellos,
+    reserved: 0,
+    sellos,
+    sinSellos: sellos.length === 0,
     sortIndex: -Date.now(),
   }
 }

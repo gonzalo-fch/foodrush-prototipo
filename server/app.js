@@ -27,6 +27,50 @@ export function createApp(repository) {
     }),
   )
 
+  app.get(
+    '/api/cart',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await repository.getCart(
+          String(req.query.customerId ?? ''),
+          String(req.query.storeId ?? ''),
+        ),
+      )
+    }),
+  )
+
+  app.put(
+    '/api/cart/items',
+    asyncHandler(async (req, res) => {
+      res.json(await repository.setCartItem(req.body))
+    }),
+  )
+
+  app.delete(
+    '/api/cart/items/:productId',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await repository.removeCartItem({
+          customerId: String(req.query.customerId ?? ''),
+          storeId: String(req.query.storeId ?? ''),
+          productId: req.params.productId,
+        }),
+      )
+    }),
+  )
+
+  app.delete(
+    '/api/cart',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await repository.clearCart({
+          customerId: String(req.query.customerId ?? ''),
+          storeId: String(req.query.storeId ?? ''),
+        }),
+      )
+    }),
+  )
+
   app.post(
     '/api/orders',
     asyncHandler(async (req, res) => {

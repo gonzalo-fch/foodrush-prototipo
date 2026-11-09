@@ -254,6 +254,9 @@ export function StoreSelector() {
       <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-white px-4 pb-6 pt-3 shadow-2xl">
         <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-slate-300" />
         <h1 className="text-center text-[23px] font-extrabold text-ink">Selecciona tu Comercio</h1>
+        <p className="mt-1 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-400">
+          Comercios recientes
+        </p>
 
         <div className="mt-5 max-h-[58dvh] space-y-3 overflow-y-auto">
           {stores.map((store) => {
@@ -267,11 +270,11 @@ export function StoreSelector() {
               <button
                 key={store.id}
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (store.id !== selectedStore.id && count > 0) {
                     showToast('Carrito vaciado al cambiar de comercio', 'info')
                   }
-                  selectStore(store.id)
+                  await selectStore(store.id)
                   navigate('/catalogo')
                 }}
                 className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${
@@ -300,13 +303,109 @@ export function StoreSelector() {
 
         <button
           type="button"
-          onClick={() => showToast('Búsqueda de ubicaciones no disponible en el prototipo', 'info')}
+          onClick={() => navigate('/buscar-comercio')}
           className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#e4ebf3] text-[16px] font-extrabold text-ink"
         >
           <Search size={20} />
           Buscar otra ubicación
         </button>
       </div>
+    </AppShell>
+  )
+}
+
+
+export function StoreSearchPage() {
+  const navigate = useNavigate()
+  const { showToast } = useToast()
+  const { products } = useAppStore()
+  const { selectedStore, selectStore } = useClientStore()
+  const { count } = useCart()
+  const [query, setQuery] = useState('')
+
+  const filtered = stores.filter((store) => {
+    const text = query.trim().toLowerCase()
+    if (!text) return true
+    return (
+      store.name.toLowerCase().includes(text) ||
+      store.address?.toLowerCase().includes(text)
+    )
+  })
+
+  async function chooseStore(storeId: string) {
+    if (storeId !== selectedStore.id && count > 0) {
+      showToast('Carrito vaciado al cambiar de comercio', 'info')
+    }
+    await selectStore(storeId)
+    navigate('/catalogo')
+  }
+
+  return (
+    <AppShell>
+      <PageHeader title="Buscar comercio" backTo="/seleccionar-comercio" bordered={false} />
+
+      <main className="px-4 pb-10 pt-4">
+        <label className="flex h-12 items-center gap-2 rounded-2xl bg-chip px-4">
+          <Search size={20} strokeWidth={2} className="shrink-0 text-muted" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Busca por nombre o dirección"
+            className="w-full bg-transparent text-[15px] font-medium text-ink outline-none placeholder:text-[#8a94a6]"
+          />
+        </label>
+
+        <p className="mt-3 text-[13px] font-medium leading-snug text-slate-500">
+          Listado ilustrativo de comercios ficticios del prototipo.
+        </p>
+
+        <div className="mt-4 space-y-3">
+          {filtered.map((store) => {
+            const selected = store.id === selectedStore.id
+            const productCount = products.filter(
+              (product) => product.storeId === store.id && product.visible,
+            ).length
+
+            return (
+              <button
+                key={store.id}
+                type="button"
+                onClick={() => void chooseStore(store.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                  selected ? 'border-brand bg-[#dbe7f3]' : 'border-slate-200 bg-white'
+                }`}
+              >
+                <img
+                  src={store.image ?? '/backgrounds/catalog-blur.png'}
+                  alt={store.name}
+                  className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[16px] font-extrabold text-ink">
+                    {store.name}
+                  </span>
+                  <span className="block truncate text-[13px] font-medium text-slate-500">
+                    {store.address}
+                  </span>
+                  <span className="block text-[11px] font-semibold text-slate-400">
+                    {productCount} {productCount === 1 ? 'producto disponible' : 'productos disponibles'}
+                  </span>
+                </span>
+                {selected && <CheckCircle2 size={22} className="shrink-0 text-brand" />}
+              </button>
+            )
+          })}
+
+          {filtered.length === 0 && (
+            <div className="rounded-2xl bg-white/60 px-6 py-8 text-center">
+              <p className="text-[15px] font-bold text-ink">No encontramos comercios</p>
+              <p className="mt-1 text-[13px] font-medium text-slate-500">
+                Prueba con otro nombre o dirección.
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
     </AppShell>
   )
 }

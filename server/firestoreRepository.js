@@ -5,8 +5,10 @@ import {
   buildMovement,
   buildProduct,
   httpError,
+  normalizeSellos,
   nowDisplay,
   validateOrderInput,
+  withAvailability,
 } from './domain.js'
 import { createSeedState } from './seed.js'
 
@@ -47,6 +49,10 @@ function initDb() {
   return db
 }
 
+function docData(doc) {
+  return { id: doc.id, ...doc.data() }
+}
+
 async function seedIfEmpty(db, seed) {
   const existing = await db.collection('products').limit(1).get()
   if (!existing.empty) return
@@ -68,31 +74,76 @@ async function seedIfEmpty(db, seed) {
   seed.movements.forEach((movement) => {
     batch.set(db.collection('movements').doc(movement.id), movement)
   })
+  seed.reservations.forEach((reservation) => {
+    batch.set(db.collection('reservations').doc(reservation.id), reservation)
+  })
   batch.set(db.collection('meta').doc('orderCounter'), { value: seed.orderCounter })
 
   await batch.commit()
 }
 
+async function readProducts(db) {
+  const snap = await db.collection('products').get()
+  return snap.docs
+    .map(docData)
+    .map(withAvailability)
+    .sort(
+      (a, b) =>
+        (a.sortIndex ?? Number.MAX_SAFE_INTEGER) -
+        (b.sortIndex ?? Number.MAX_SAFE_INTEGER),
+    )
+}
+
 async function readAll(db) {
-  const [productsSnap, ordersSnap, movementsSnap] = await Promise.all([
-    db.collection('products').get(),
+  const [products, ordersSnap, movementsSnap] = await Promise.all([
+    readProducts(db),
     db.collection('orders').get(),
     db.collection('movements').get(),
   ])
 
-  const products = productsSnap.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => (a.sortIndex ?? Number.MAX_SAFE_INTEGER) - (b.sortIndex ?? Number.MAX_SAFE_INTEGER))
-
   const orders = ordersSnap.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .map(docData)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt ?? 0).getTime() -
+        new Date(a.createdAt ?? 0).getTime(),
+    )
 
   const movements = movementsSnap.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .map(docData)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt ?? 0).getTime() -
+        new Date(a.createdAt ?? 0).getTime(),
+    )
 
   return { products, orders, movements }
+}
+
+async function readCart(db, customerId, storeId) {
+  const snap = await db
+    .collection('reservations')
+    .where('customerId', '==', customerId)
+    .get()
+
+  return snap.docs
+    .map(docData)
+    .filter(
+      (reservation) =>
+        reservation.status === 'cart' && reservation.storeId === storeId,
+    )
+    .map((reservation) => ({
+      productId: reservation.productId,
+      quantity: reservation.quantity,
+    }))
+}
+
+async function cartPayload(db, customerId, storeId) {
+  const [products, cart] = await Promise.all([
+    readProducts(db),
+    readCart(db, customerId, storeId),
+  ])
+  return { products, cart }
 }
 
 export async function createFirestoreRepository() {
@@ -109,45 +160,242 @@ export async function createFirestoreRepository() {
       return readAll(db)
     },
 
+    async getCart(customerId, storeId) {
+      return cartPayload(db, customerId, storeId)
+    },
+
+    async setCartItem({
+      customerId,
+      storeId,
+      productId,
+      quantity,
+      mode = 'set',
+    }) {
+      if (!customerId) throw httpError(400, 'Falta el cliente.')
+      if (!storeId) throw httpError(400, 'Falta el comercio.')
+      if (!productId) throw httpError(400, 'Falta el producto.')
+
+      const requested = Math.trunc(Number(quantity))
+      if (!Number.isFinite(requested)) {
+        throw httpError(400, 'La cantidad reservada no es válida.')
+      }
+      if (mode === 'add' && requested <= 0) {
+        throw httpError(400, 'La cantidad a reservar debe ser mayor que cero.')
+      }
+
+      const productRef = db.collection('products').doc(productId)
+      const reservationRef = db
+        .collection('reservations')
+        .doc(`cart_${customerId}_${storeId}_${productId}`)
+      const timestamp = new Date().toISOString()
+
+      await db.runTransaction(async (transaction) => {
+        const productSnap = await transaction.get(productRef)
+        const reservationSnap = await transaction.get(reservationRef)
+
+        if (!productSnap.exists) throw httpError(404, 'Producto no encontrado.')
+
+        const product = { id: productSnap.id, ...productSnap.data() }
+        if (product.storeId !== storeId) {
+          throw httpError(404, 'Producto no encontrado en este comercio.')
+        }
+
+        const existing =
+          reservationSnap.exists && reservationSnap.data().status === 'cart'
+            ? { id: reservationSnap.id, ...reservationSnap.data() }
+            : null
+        const existingQuantity = existing?.quantity ?? 0
+        const reserved = Math.max(0, Number(product.reserved) || 0)
+        const nextQuantity =
+          mode === 'add' ? existingQuantity + requested : requested
+        if (nextQuantity < 0) {
+          throw httpError(400, 'La cantidad reservada no es válida.')
+        }
+
+        if (nextQuantity === 0) {
+          if (existing) {
+            transaction.set(productRef, {
+              ...product,
+              reserved: Math.max(0, reserved - existingQuantity),
+            })
+            transaction.delete(reservationRef)
+          }
+          return
+        }
+
+        if (!product.visible && !existing) {
+          throw httpError(400, 'El producto no está disponible para reservar.')
+        }
+
+        const maxQuantity = product.stock - (reserved - existingQuantity)
+        if (nextQuantity > maxQuantity) {
+          throw httpError(
+            400,
+            `Solo puedes reservar ${Math.max(0, maxQuantity)} unidades de ${product.name}.`,
+          )
+        }
+
+        transaction.set(productRef, {
+          ...product,
+          reserved: Math.max(0, reserved - existingQuantity + nextQuantity),
+        })
+        transaction.set(reservationRef, {
+          id: reservationRef.id,
+          storeId,
+          productId,
+          customerId,
+          quantity: nextQuantity,
+          status: 'cart',
+          createdAt: existing?.createdAt ?? timestamp,
+          updatedAt: timestamp,
+        })
+      })
+
+      return cartPayload(db, customerId, storeId)
+    },
+
+    async removeCartItem({ customerId, storeId, productId }) {
+      return this.setCartItem({ customerId, storeId, productId, quantity: 0 })
+    },
+
+    async clearCart({ customerId, storeId }) {
+      const snap = await db
+        .collection('reservations')
+        .where('customerId', '==', customerId)
+        .get()
+      const refs = snap.docs
+        .filter((doc) => {
+          const data = doc.data()
+          return data.status === 'cart' && data.storeId === storeId
+        })
+        .map((doc) => doc.ref)
+
+      if (refs.length > 0) {
+        await db.runTransaction(async (transaction) => {
+          const reservationSnaps = await transaction.getAll(...refs)
+          const valid = reservationSnaps
+            .map((reservationSnap, index) => ({
+              reservationSnap,
+              ref: refs[index],
+            }))
+            .filter(
+              ({ reservationSnap }) =>
+                reservationSnap.exists &&
+                reservationSnap.data().status === 'cart',
+            )
+          const productRefs = valid.map(({ reservationSnap }) =>
+            db.collection('products').doc(reservationSnap.data().productId),
+          )
+          const productSnaps = productRefs.length
+            ? await transaction.getAll(...productRefs)
+            : []
+
+          valid.forEach(({ reservationSnap, ref }, index) => {
+            const reservation = reservationSnap.data()
+            const productSnap = productSnaps[index]
+
+            if (productSnap?.exists) {
+              const product = { id: productSnap.id, ...productSnap.data() }
+              transaction.set(productSnap.ref, {
+                ...product,
+                reserved: Math.max(
+                  0,
+                  (Number(product.reserved) || 0) - reservation.quantity,
+                ),
+              })
+            }
+
+            transaction.delete(ref)
+          })
+        })
+      }
+
+      return cartPayload(db, customerId, storeId)
+    },
+
     async createOrder(input) {
       validateOrderInput(input)
       const requested = aggregateOrderItems(input.items)
+      const cartSnap = await db
+        .collection('reservations')
+        .where('customerId', '==', input.customerId)
+        .get()
+      const cartRefs = cartSnap.docs
+        .filter((doc) => {
+          const data = doc.data()
+          return data.status === 'cart' && data.storeId === input.storeId
+        })
+        .map((doc) => doc.ref)
+
+      if (cartRefs.length === 0) {
+        throw httpError(400, 'Tu carrito está vacío.')
+      }
+
       const counterRef = db.collection('meta').doc('orderCounter')
-      const productRefs = requested.map((item) =>
-        db.collection('products').doc(item.productId),
-      )
 
       const order = await db.runTransaction(async (transaction) => {
         const counterSnap = await transaction.get(counterRef)
+        const reservationSnaps = await transaction.getAll(...cartRefs)
+        const valid = reservationSnaps
+          .map((reservationSnap, index) => ({
+            reservationSnap,
+            ref: cartRefs[index],
+          }))
+          .filter(
+            ({ reservationSnap }) =>
+              reservationSnap.exists &&
+              reservationSnap.data().status === 'cart' &&
+              reservationSnap.data().storeId === input.storeId,
+          )
+
+        const byProduct = new Map(
+          valid.map(({ reservationSnap, ref }) => {
+            const reservation = {
+              id: reservationSnap.id,
+              ...reservationSnap.data(),
+            }
+            return [reservation.productId, { ref, reservation }]
+          }),
+        )
+
+        if (
+          requested.length !== byProduct.size ||
+          requested.some((item) => !byProduct.has(item.productId))
+        ) {
+          throw httpError(
+            400,
+            'El carrito cambió. Actualiza la página e inténtalo de nuevo.',
+          )
+        }
+
+        const productRefs = requested.map((item) =>
+          db.collection('products').doc(item.productId),
+        )
         const productSnaps = await transaction.getAll(...productRefs)
+        const entries = requested.map((item, index) => {
+          const productSnap = productSnaps[index]
+          const cartEntry = byProduct.get(item.productId)
+
+          if (!productSnap.exists) {
+            throw httpError(404, `Producto no encontrado: ${item.productId}.`)
+          }
+          if (!cartEntry || cartEntry.reservation.quantity <= 0) {
+            throw httpError(400, 'Falta una reserva del carrito.')
+          }
+
+          return {
+            product: { id: productSnap.id, ...productSnap.data() },
+            cartRef: cartEntry.ref,
+            reservation: cartEntry.reservation,
+            quantity: cartEntry.reservation.quantity,
+          }
+        })
+
         const counter = counterSnap.exists
           ? Number(counterSnap.data().value) || 1000
           : 1000
         const orderId = String(counter + 1)
-        const entries = []
-
-        productSnaps.forEach((snap, index) => {
-          const { productId, quantity } = requested[index]
-
-          if (!snap.exists) {
-            throw httpError(404, `Producto no encontrado: ${productId}.`)
-          }
-
-          const product = { id: snap.id, ...snap.data() }
-
-          if (product.storeId !== input.storeId) {
-            throw httpError(400, 'El producto no pertenece al comercio seleccionado.')
-          }
-          if (!product.visible) {
-            throw httpError(400, `El producto ${product.name} no está disponible.`)
-          }
-          if (quantity > product.stock) {
-            throw httpError(400, `Stock insuficiente para ${product.name}.`)
-          }
-
-          entries.push({ ref: productRefs[index], product, quantity })
-        })
-
+        const createdAt = new Date().toISOString()
         const items = entries.map(({ product, quantity }) => ({
           productId: product.id,
           name: product.name,
@@ -155,7 +403,6 @@ export async function createFirestoreRepository() {
           quantity,
           image: product.image,
         }))
-
         const createdOrder = {
           id: orderId,
           customer: input.customer.trim(),
@@ -163,26 +410,39 @@ export async function createFirestoreRepository() {
           store: input.store ?? storeNames.get(input.storeId) ?? 'Comercio',
           storeId: input.storeId,
           date: nowDisplay(),
-          createdAt: new Date().toISOString(),
+          createdAt,
           status: 'pendiente',
           items,
-          total: items.reduce((total, item) => total + item.price * item.quantity, 0),
+          total: items.reduce(
+            (total, item) => total + item.price * item.quantity,
+            0,
+          ),
           paymentMethod: input.paymentMethod.trim(),
         }
 
-        entries.forEach(({ ref, product, quantity }) => {
-          transaction.update(ref, { stock: product.stock - quantity })
-          const movement = buildMovement(
-            product,
-            'venta',
-            -quantity,
-            'Descuento por venta',
+        entries.forEach(({ product, cartRef, reservation }) => {
+          const orderReservationRef = db
+            .collection('reservations')
+            .doc(`order_${orderId}_${product.id}`)
+
+          transaction.delete(cartRef)
+          transaction.set(orderReservationRef, {
+            id: orderReservationRef.id,
+            storeId: createdOrder.storeId,
+            productId: product.id,
+            customerId: input.customerId,
+            quantity: reservation.quantity,
             orderId,
-          )
-          transaction.set(db.collection('movements').doc(movement.id), movement)
+            status: 'order',
+            createdAt: reservation.createdAt ?? createdAt,
+            updatedAt: createdAt,
+          })
         })
 
-        transaction.set(db.collection('orders').doc(orderId), createdOrder)
+        transaction.set(
+          db.collection('orders').doc(orderId),
+          createdOrder,
+        )
         transaction.set(counterRef, { value: counter + 1 })
 
         return createdOrder
@@ -207,7 +467,7 @@ export async function createFirestoreRepository() {
       }
 
       await batch.commit()
-      return { ...(await readAll(db)), product }
+      return { ...(await readAll(db)), product: withAvailability(product) }
     },
 
     async updateProduct(id, input) {
@@ -226,20 +486,42 @@ export async function createFirestoreRepository() {
           throw httpError(400, 'Ingresa una cantidad válida (0 o más).')
         }
 
+        const reserved = Number(current.reserved) || 0
+        if (nextStock < reserved) {
+          throw httpError(
+            409,
+            `No puedes dejar el stock por debajo de las reservas (${reserved}).`,
+          )
+        }
+
         const nextPrice =
           input.price !== undefined ? Number(input.price) : current.price
         if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
           throw httpError(400, 'Ingresa un precio válido mayor a 0.')
         }
 
+        const nextSellos =
+          input.sellos !== undefined
+            ? normalizeSellos(input.sellos)
+            : normalizeSellos(current.sellos)
+        const {
+          id: _id,
+          storeId: _storeId,
+          reserved: _reserved,
+          available: _available,
+          ...patch
+        } = input
         const updated = {
           ...current,
-          ...input,
+          ...patch,
           id: current.id,
           storeId: current.storeId,
           name: input.name?.trim() || current.name,
           price: nextPrice,
           stock: nextStock,
+          reserved,
+          sellos: nextSellos,
+          sinSellos: nextSellos.length === 0,
         }
         const delta = nextStock - current.stock
 
@@ -258,11 +540,43 @@ export async function createFirestoreRepository() {
         return updated
       })
 
-      return { ...(await readAll(db)), product }
+      return { ...(await readAll(db)), product: withAvailability(product) }
     },
 
     async deleteProduct(id) {
-      await db.collection('products').doc(id).delete()
+      const productRef = db.collection('products').doc(id)
+      const snap = await productRef.get()
+      if (!snap.exists) throw httpError(404, 'Producto no encontrado.')
+
+      const reservationSnap = await db
+        .collection('reservations')
+        .where('productId', '==', id)
+        .limit(1)
+        .get()
+      const pendingOrders = await db
+        .collection('orders')
+        .where('status', '==', 'pendiente')
+        .get()
+      const hasPendingOrder = pendingOrders.docs.some((doc) =>
+        doc.data().items?.some((item) => item.productId === id),
+      )
+
+      if (!reservationSnap.empty || hasPendingOrder) {
+        throw httpError(
+          409,
+          'No puedes eliminar un producto con reservas o pedidos pendientes.',
+        )
+      }
+
+      const movements = await db
+        .collection('movements')
+        .where('productId', '==', id)
+        .get()
+      const batch = db.batch()
+      batch.delete(productRef)
+      movements.docs.forEach((movement) => batch.delete(movement.ref))
+      await batch.commit()
+
       return readAll(db)
     },
 
@@ -271,9 +585,13 @@ export async function createFirestoreRepository() {
       const snap = await ref.get()
       if (!snap.exists) throw httpError(404, 'Producto no encontrado.')
 
-      const product = { id: snap.id, ...snap.data(), visible: Boolean(visible) }
+      const product = {
+        id: snap.id,
+        ...snap.data(),
+        visible: Boolean(visible),
+      }
       await ref.set(product)
-      return { ...(await readAll(db)), product }
+      return { ...(await readAll(db)), product: withAvailability(product) }
     },
 
     async adjustStock(id, delta) {
@@ -290,6 +608,14 @@ export async function createFirestoreRepository() {
         }
 
         const nextStock = Math.max(0, current.stock + Math.trunc(numericDelta))
+        const reserved = Number(current.reserved) || 0
+        if (nextStock < reserved) {
+          throw httpError(
+            409,
+            `No puedes dejar el stock por debajo de las reservas (${reserved}).`,
+          )
+        }
+
         const appliedDelta = nextStock - current.stock
         if (appliedDelta === 0) return
 
@@ -309,22 +635,95 @@ export async function createFirestoreRepository() {
     },
 
     async completeOrder(id) {
-      const ref = db.collection('orders').doc(id)
-      const snap = await ref.get()
-      if (!snap.exists) throw httpError(404, 'Pedido no encontrado.')
+      const orderRef = db.collection('orders').doc(id)
+      const reservationsSnap = await db
+        .collection('reservations')
+        .where('orderId', '==', id)
+        .get()
+      const reservationRefs = reservationsSnap.docs.map((doc) => doc.ref)
 
-      const order = { id: snap.id, ...snap.data() }
-      if (order.status !== 'pendiente') {
-        throw httpError(400, 'Solo se pueden entregar pedidos pendientes.')
+      if (reservationRefs.length === 0) {
+        throw httpError(409, 'El pedido no tiene reservas asociadas.')
       }
 
-      const updated = { ...order, status: 'retirado' }
-      await ref.set(updated)
-      return { ...(await readAll(db)), order: updated }
+      const order = await db.runTransaction(async (transaction) => {
+        const orderSnap = await transaction.get(orderRef)
+        if (!orderSnap.exists) throw httpError(404, 'Pedido no encontrado.')
+
+        const currentOrder = { id: orderSnap.id, ...orderSnap.data() }
+        if (currentOrder.status !== 'pendiente') {
+          throw httpError(400, 'Solo se pueden entregar pedidos pendientes.')
+        }
+
+        const reservationSnaps = await transaction.getAll(...reservationRefs)
+        const valid = reservationSnaps
+          .map((reservationSnap, index) => ({
+            reservationSnap,
+            ref: reservationRefs[index],
+          }))
+          .filter(
+            ({ reservationSnap }) =>
+              reservationSnap.exists &&
+              reservationSnap.data().orderId === id,
+          )
+        const productRefs = valid.map(({ reservationSnap }) =>
+          db.collection('products').doc(reservationSnap.data().productId),
+        )
+        const productSnaps = productRefs.length
+          ? await transaction.getAll(...productRefs)
+          : []
+
+        valid.forEach(({ reservationSnap, ref }, index) => {
+          const reservation = reservationSnap.data()
+          const productSnap = productSnaps[index]
+          if (!productSnap?.exists) {
+            throw httpError(409, 'El producto del pedido ya no existe.')
+          }
+
+          const product = { id: productSnap.id, ...productSnap.data() }
+          if (product.stock < reservation.quantity) {
+            throw httpError(
+              409,
+              `Stock físico insuficiente para ${product.name}.`,
+            )
+          }
+
+          const updated = {
+            ...product,
+            stock: product.stock - reservation.quantity,
+            reserved: Math.max(
+              0,
+              (Number(product.reserved) || 0) - reservation.quantity,
+            ),
+          }
+          const movement = buildMovement(
+            updated,
+            'venta',
+            -reservation.quantity,
+            'Descuento por venta',
+            id,
+          )
+
+          transaction.set(productSnap.ref, updated)
+          transaction.set(db.collection('movements').doc(movement.id), movement)
+          transaction.delete(ref)
+        })
+
+        const updatedOrder = { ...currentOrder, status: 'retirado' }
+        transaction.set(orderRef, updatedOrder)
+        return updatedOrder
+      })
+
+      return { ...(await readAll(db)), order }
     },
 
     async cancelOrder(id) {
       const orderRef = db.collection('orders').doc(id)
+      const reservationsSnap = await db
+        .collection('reservations')
+        .where('orderId', '==', id)
+        .get()
+      const reservationRefs = reservationsSnap.docs.map((doc) => doc.ref)
 
       const order = await db.runTransaction(async (transaction) => {
         const orderSnap = await transaction.get(orderRef)
@@ -335,36 +734,47 @@ export async function createFirestoreRepository() {
           throw httpError(400, 'Solo se pueden cancelar pedidos pendientes.')
         }
 
-        const productRefs = currentOrder.items.map((item) =>
-          db.collection('products').doc(item.productId),
+        const reservationSnaps = reservationRefs.length
+          ? await transaction.getAll(...reservationRefs)
+          : []
+        const valid = reservationSnaps
+          .map((reservationSnap, index) => ({
+            reservationSnap,
+            ref: reservationRefs[index],
+          }))
+          .filter(
+            ({ reservationSnap }) =>
+              reservationSnap.exists &&
+              reservationSnap.data().orderId === id,
+          )
+        const productRefs = valid.map(({ reservationSnap }) =>
+          db.collection('products').doc(reservationSnap.data().productId),
         )
         const productSnaps = productRefs.length
           ? await transaction.getAll(...productRefs)
           : []
-        const restored = []
 
-        productSnaps.forEach((snap, index) => {
-          if (!snap.exists) return
-          const item = currentOrder.items[index]
-          const product = { id: snap.id, ...snap.data() }
-          restored.push({ ref: productRefs[index], product, item })
+        valid.forEach(({ reservationSnap, ref }, index) => {
+          const reservation = reservationSnap.data()
+          const productSnap = productSnaps[index]
+
+          if (productSnap?.exists) {
+            const product = { id: productSnap.id, ...productSnap.data() }
+            transaction.set(productSnap.ref, {
+              ...product,
+              reserved: Math.max(
+                0,
+                (Number(product.reserved) || 0) - reservation.quantity,
+              ),
+            })
+          }
+
+          transaction.delete(ref)
         })
 
-        restored.forEach(({ ref, product, item }) => {
-          transaction.update(ref, { stock: product.stock + item.quantity })
-          const movement = buildMovement(
-            product,
-            'reposicion',
-            item.quantity,
-            'Reposición por cancelación',
-            currentOrder.id,
-          )
-          transaction.set(db.collection('movements').doc(movement.id), movement)
-        })
-
-        const updated = { ...currentOrder, status: 'cancelado' }
-        transaction.set(orderRef, updated)
-        return updated
+        const updatedOrder = { ...currentOrder, status: 'cancelado' }
+        transaction.set(orderRef, updatedOrder)
+        return updatedOrder
       })
 
       return { ...(await readAll(db)), order }

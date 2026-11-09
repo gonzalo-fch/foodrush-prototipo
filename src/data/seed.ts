@@ -14,26 +14,31 @@ export const stores: Store[] = [
     id: 'casino-los-notros',
     name: 'Casino Los Notros',
     address: 'Campus Andrés Bello',
+    image: '/backgrounds/catalog-blur.png',
   },
   {
     id: 'casino-araucarias',
     name: 'Casino de Las Araucarias',
     address: 'Campus Andrés Bello',
+    image: '/backgrounds/catalog-blur.png',
   },
   {
     id: 'imperio-food-truck',
     name: 'Imperio - Food Truck',
     address: 'Uruguay 1552',
+    image: '/backgrounds/catalog-blur.png',
   },
   {
     id: 'cafe-de-la-tia',
     name: 'Café de la Tía',
     address: 'Montevideo 810',
+    image: '/backgrounds/catalog-blur.png',
   },
   {
     id: 'kiosko-edificio-d',
     name: 'Kiosko Edificio D',
     address: 'Edificio D - Campus Andrés Bello',
+    image: '/backgrounds/catalog-blur.png',
   },
 ]
 
