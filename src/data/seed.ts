@@ -82,6 +82,22 @@ export const users: User[] = [
     role: 'comercio',
     storeId: 'casino-los-notros',
   },
+  {
+    id: 'u-07',
+    name: 'Administrador Casino de Las Araucarias',
+    email: 'admin@casinoaraucarias.cl',
+    password: '123456',
+    role: 'comercio',
+    storeId: 'casino-araucarias',
+  },
+  {
+    id: 'u-08',
+    name: 'Administrador Imperio Food Truck',
+    email: 'admin@imperiofoodtruck.cl',
+    password: '123456',
+    role: 'comercio',
+    storeId: 'imperio-food-truck',
+  },
 ]
 
 export const products: Product[] = [

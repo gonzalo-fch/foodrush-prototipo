@@ -6,15 +6,12 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { users as seedUsers } from '../data/seed'
+import { stores, users as seedUsers } from '../data/seed'
 import type { User } from '../types'
 
-const commerceUser = seedUsers.find((user) => user.role === 'comercio')
+const commerceUsers = seedUsers.filter((user) => user.role === 'comercio')
 
-export const COMMERCE_DEMO_EMAIL = commerceUser?.email ?? 'admin@casinolosnotros.cl'
-
-type CommerceState = {
-  currentUserId: string | null
+type CommerceProfile = {
   businessName: string
   businessEmail: string
   password: string
@@ -25,6 +22,17 @@ type CommerceState = {
   cancellationNotifications: boolean
   openTime: string
   closeTime: string
+}
+
+type CommerceState = {
+  currentUserId: string | null
+  profiles: Record<string, CommerceProfile>
+}
+
+type StoreSettings = {
+  open: boolean
+  creditEnabled: boolean
+  debitEnabled: boolean
 }
 
 type AuthResult = { ok: true } | { ok: false; error: string }
@@ -41,6 +49,7 @@ type CommerceStoreValue = {
   cancellationNotifications: boolean
   openTime: string
   closeTime: string
+  getStoreSettings: (storeId: string) => StoreSettings
   login: (email: string, password: string) => AuthResult
   logout: () => void
   updateBusiness: (name: string, email: string) => void
@@ -53,21 +62,47 @@ type CommerceStoreValue = {
   setHours: (openTime: string, closeTime: string) => void
 }
 
-const STORAGE_KEY = 'foodrush-commerce-v1'
+const STORAGE_KEY = 'foodrush-commerce-v2'
 
-const defaultState: CommerceState = {
-  currentUserId: null,
-  businessName: 'Casino Los Notros',
-  businessEmail: 'casinolosnotros@gmail.com',
-  password: commerceUser?.password ?? '123456',
+const fallbackSettings: StoreSettings = {
   open: true,
   creditEnabled: true,
   debitEnabled: true,
-  newOrdersNotifications: true,
-  cancellationNotifications: true,
-  openTime: '08:00',
-  closeTime: '20:00',
 }
+
+function storeNameFor(storeId?: string) {
+  return stores.find((store) => store.id === storeId)?.name ?? 'Mi Comercio'
+}
+
+const defaultProfiles = commerceUsers.reduce<Record<string, CommerceProfile>>(
+  (profiles, user) => {
+    profiles[user.id] = {
+      businessName: storeNameFor(user.storeId),
+      businessEmail: user.email ?? '',
+      password: user.password ?? '123456',
+      open: true,
+      creditEnabled: true,
+      debitEnabled: true,
+      newOrdersNotifications: true,
+      cancellationNotifications: true,
+      openTime: '08:00',
+      closeTime: '20:00',
+    }
+    return profiles
+  },
+  {},
+)
+
+const defaultState: CommerceState = {
+  currentUserId: null,
+  profiles: defaultProfiles,
+}
+
+export const COMMERCE_DEMO_ACCOUNTS = commerceUsers.map((user) => ({
+  storeName: storeNameFor(user.storeId),
+  email: user.email ?? '',
+  password: user.password ?? '123456',
+}))
 
 const CommerceStoreContext = createContext<CommerceStoreValue | null>(null)
 
@@ -75,8 +110,12 @@ function loadState(): CommerceState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return defaultState
+
     const parsed = JSON.parse(raw) as Partial<CommerceState>
-    return { ...defaultState, ...parsed }
+    return {
+      currentUserId: parsed.currentUserId ?? null,
+      profiles: { ...defaultProfiles, ...(parsed.profiles ?? {}) },
+    }
   } catch {
     return defaultState
   }
@@ -90,25 +129,57 @@ export function CommerceStoreProvider({ children }: { children: ReactNode }) {
   }, [state])
 
   const value = useMemo<CommerceStoreValue>(() => {
-    const currentUser =
-      state.currentUserId && commerceUser
-        ? { ...commerceUser, email: commerceUser.email }
-        : null
+    const currentUser = state.currentUserId
+      ? commerceUsers.find((user) => user.id === state.currentUserId) ?? null
+      : null
+    const activeProfile = currentUser ? state.profiles[currentUser.id] : null
+
+    function updateProfile(patch: Partial<CommerceProfile>) {
+      if (!currentUser) return
+      setState((current) => {
+        const profile = current.profiles[currentUser.id]
+        if (!profile) return current
+        return {
+          ...current,
+          profiles: {
+            ...current.profiles,
+            [currentUser.id]: { ...profile, ...patch },
+          },
+        }
+      })
+    }
+
+    function getStoreSettings(storeId: string): StoreSettings {
+      const user = commerceUsers.find((entry) => entry.storeId === storeId)
+      const profile = user ? state.profiles[user.id] : null
+      if (!profile) return fallbackSettings
+
+      return {
+        open: profile.open,
+        creditEnabled: profile.creditEnabled,
+        debitEnabled: profile.debitEnabled,
+      }
+    }
 
     function login(email: string, password: string): AuthResult {
       const normalized = email.trim().toLowerCase()
-      const validEmail =
-        normalized === COMMERCE_DEMO_EMAIL.toLowerCase() ||
-        normalized === state.businessEmail.toLowerCase()
+      const user = commerceUsers.find((entry) => {
+        const profile = state.profiles[entry.id]
+        const loginEmail = profile?.businessEmail || entry.email || ''
+        return loginEmail.trim().toLowerCase() === normalized
+      })
 
-      if (!validEmail || password !== state.password) {
+      if (!user) {
         return { ok: false, error: 'Correo o contraseña incorrectos.' }
       }
 
-      setState((current) => ({
-        ...current,
-        currentUserId: commerceUser?.id ?? 'u-06',
-      }))
+      const profile = state.profiles[user.id]
+      const expectedPassword = profile?.password ?? user.password
+      if (password !== expectedPassword) {
+        return { ok: false, error: 'Correo o contraseña incorrectos.' }
+      }
+
+      setState((current) => ({ ...current, currentUserId: user.id }))
       return { ok: true }
     }
 
@@ -117,70 +188,69 @@ export function CommerceStoreProvider({ children }: { children: ReactNode }) {
     }
 
     function updateBusiness(name: string, email: string) {
-      setState((current) => ({
-        ...current,
-        businessName: name.trim() || current.businessName,
-        businessEmail: email.trim() || current.businessEmail,
-      }))
+      if (!currentUser) return
+      setState((current) => {
+        const profile = current.profiles[currentUser.id]
+        if (!profile) return current
+        return {
+          ...current,
+          profiles: {
+            ...current.profiles,
+            [currentUser.id]: {
+              ...profile,
+              businessName: name.trim() || profile.businessName,
+              businessEmail: email.trim() || profile.businessEmail,
+            },
+          },
+        }
+      })
     }
 
     function changePassword(currentPassword: string, nextPassword: string): AuthResult {
-      if (currentPassword !== state.password) {
+      if (!activeProfile) {
+        return { ok: false, error: 'No hay una sesión de comercio activa.' }
+      }
+      if (currentPassword !== activeProfile.password) {
         return { ok: false, error: 'La contraseña actual no es correcta.' }
       }
       if (nextPassword.length < 6) {
         return { ok: false, error: 'La nueva contraseña debe tener al menos 6 caracteres.' }
       }
-      setState((current) => ({ ...current, password: nextPassword }))
+      updateProfile({ password: nextPassword })
       return { ok: true }
     }
 
-    function setOpen(value: boolean) {
-      setState((current) => ({ ...current, open: value }))
-    }
-
-    function setCreditEnabled(value: boolean) {
-      setState((current) => ({ ...current, creditEnabled: value }))
-    }
-
-    function setDebitEnabled(value: boolean) {
-      setState((current) => ({ ...current, debitEnabled: value }))
-    }
-
-    function setNewOrdersNotifications(value: boolean) {
-      setState((current) => ({ ...current, newOrdersNotifications: value }))
-    }
-
-    function setCancellationNotifications(value: boolean) {
-      setState((current) => ({ ...current, cancellationNotifications: value }))
-    }
-
-    function setHours(openTime: string, closeTime: string) {
-      setState((current) => ({ ...current, openTime, closeTime }))
-    }
-
     return {
-      currentUser,
-      storeId: commerceUser?.storeId ?? 'casino-los-notros',
-      businessName: state.businessName,
-      businessEmail: state.businessEmail,
-      open: state.open,
-      creditEnabled: state.creditEnabled,
-      debitEnabled: state.debitEnabled,
-      newOrdersNotifications: state.newOrdersNotifications,
-      cancellationNotifications: state.cancellationNotifications,
-      openTime: state.openTime,
-      closeTime: state.closeTime,
+      currentUser: currentUser
+        ? {
+            ...currentUser,
+            name: activeProfile?.businessName ?? currentUser.name,
+            email: activeProfile?.businessEmail ?? currentUser.email,
+          }
+        : null,
+      storeId: currentUser?.storeId ?? '',
+      businessName: activeProfile?.businessName ?? '',
+      businessEmail: activeProfile?.businessEmail ?? '',
+      open: activeProfile?.open ?? true,
+      creditEnabled: activeProfile?.creditEnabled ?? true,
+      debitEnabled: activeProfile?.debitEnabled ?? true,
+      newOrdersNotifications: activeProfile?.newOrdersNotifications ?? true,
+      cancellationNotifications: activeProfile?.cancellationNotifications ?? true,
+      openTime: activeProfile?.openTime ?? '08:00',
+      closeTime: activeProfile?.closeTime ?? '20:00',
+      getStoreSettings,
       login,
       logout,
       updateBusiness,
       changePassword,
-      setOpen,
-      setCreditEnabled,
-      setDebitEnabled,
-      setNewOrdersNotifications,
-      setCancellationNotifications,
-      setHours,
+      setOpen: (value) => updateProfile({ open: value }),
+      setCreditEnabled: (value) => updateProfile({ creditEnabled: value }),
+      setDebitEnabled: (value) => updateProfile({ debitEnabled: value }),
+      setNewOrdersNotifications: (value) =>
+        updateProfile({ newOrdersNotifications: value }),
+      setCancellationNotifications: (value) =>
+        updateProfile({ cancellationNotifications: value }),
+      setHours: (openTime, closeTime) => updateProfile({ openTime, closeTime }),
     }
   }, [state])
 

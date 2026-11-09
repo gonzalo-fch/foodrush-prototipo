@@ -10,8 +10,9 @@ export function useCheckout() {
   const { currentUser, selectedStore, clearCart } = useClientStore()
   const { items } = useCart()
   const { createOrder } = useAppStore()
-  const { open } = useCommerceStore()
+  const { getStoreSettings } = useCommerceStore()
   const { showToast } = useToast()
+  const { open } = getStoreSettings(selectedStore.id)
 
   return (paymentMethod: string) => {
     if (!currentUser) {

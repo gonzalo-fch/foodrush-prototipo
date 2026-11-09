@@ -36,7 +36,8 @@ export function CartPage() {
   const { showToast } = useToast()
   const { items, subtotal, selectedStore } = useCart()
   const { setCartQuantity, removeFromCart, clearCart } = useClientStore()
-  const { open } = useCommerceStore()
+  const { getStoreSettings } = useCommerceStore()
+  const { open } = getStoreSettings(selectedStore.id)
   const [error, setError] = useState('')
 
   function changeQuantity(productId: string, delta: number) {
@@ -203,7 +204,8 @@ export function CartPage() {
 export function PaymentMethodPage() {
   const { subtotal, selectedStore } = useCart()
   const completeCheckout = useCheckout()
-  const { creditEnabled, debitEnabled, open } = useCommerceStore()
+  const { getStoreSettings } = useCommerceStore()
+  const { creditEnabled, debitEnabled, open } = getStoreSettings(selectedStore.id)
   const cardsAvailable = creditEnabled || debitEnabled
 
   const methods = [
@@ -289,7 +291,8 @@ export function PaymentMethodPage() {
 export function CardChoicePage() {
   const { subtotal, selectedStore } = useCart()
   const completeCheckout = useCheckout()
-  const { creditEnabled, debitEnabled } = useCommerceStore()
+  const { getStoreSettings } = useCommerceStore()
+  const { creditEnabled, debitEnabled } = getStoreSettings(selectedStore.id)
   const cardsAvailable = creditEnabled || debitEnabled
   const [card, setCard] = useState<'debito' | 'credito'>(debitEnabled ? 'debito' : 'credito')
 

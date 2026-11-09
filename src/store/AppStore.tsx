@@ -59,7 +59,7 @@ type AppStoreValue = {
   createOrder: (input: CreateOrderInput) => Order
 }
 
-const STORAGE_KEY = 'foodrush-state-v5'
+const STORAGE_KEY = 'foodrush-state-v6'
 
 const defaultState: StoreState = {
   products: seedProducts,

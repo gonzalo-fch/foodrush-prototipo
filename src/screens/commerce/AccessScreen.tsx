@@ -8,7 +8,7 @@ import { Field } from '../../components/Field'
 import { GoogleIcon } from '../../components/GoogleIcon'
 import { InlineError } from '../../components/InlineError'
 import { useToast } from '../../components/ToastProvider'
-import { COMMERCE_DEMO_EMAIL, useCommerceStore } from '../../store/CommerceStore'
+import { COMMERCE_DEMO_ACCOUNTS, useCommerceStore } from '../../store/CommerceStore'
 
 export function CommerceAccessPage() {
   const navigate = useNavigate()
@@ -115,9 +115,14 @@ export function CommerceAccessPage() {
           <GoogleIcon size={34} />
         </button>
 
-        <p className="mt-6 text-center text-[12px] font-medium text-slate-400">
-          Demo: {COMMERCE_DEMO_EMAIL} / 123456
-        </p>
+        <div className="mt-6 space-y-1 text-center text-[12px] font-medium text-slate-400">
+          <p className="font-bold text-slate-500">Cuentas demo</p>
+          {COMMERCE_DEMO_ACCOUNTS.map((account) => (
+            <p key={account.email}>
+              {account.storeName}: {account.email} / {account.password}
+            </p>
+          ))}
+        </div>
       </form>
     </AppShell>
   )
