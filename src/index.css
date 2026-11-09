@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Nunito Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #31709f;
+  --color-brand-strong: #004e89;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-page: #f6f8f7;
+  --color-chip: #e2e8f0;
+  --color-image: #ebebeb;
+}
+
+html {
+  background: #e8edf1;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: #e8edf1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
