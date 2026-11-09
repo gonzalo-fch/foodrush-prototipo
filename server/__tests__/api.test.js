@@ -31,6 +31,19 @@ const orderBody = {
   items: [{ productId: 'cp-4', quantity: 2 }],
 }
 
+function reserve(body = {}) {
+  return request(app)
+    .put('/api/cart/items')
+    .send({
+      customerId: 'u-01',
+      storeId: 'casino-los-notros',
+      productId: 'cp-4',
+      quantity: 2,
+      ...body,
+    })
+    .expect(200)
+}
+
 describe('API · lectura', () => {
   it('responde el estado del servidor', async () => {
     const response = await request(app).get('/api/health').expect(200)
@@ -45,11 +58,45 @@ describe('API · lectura', () => {
   })
 })
 
+describe('API · carrito y reservas', () => {
+  it('reserva stock y lo refleja en el carrito', async () => {
+    const response = await reserve()
+    expect(response.body.cart).toEqual([{ productId: 'cp-4', quantity: 2 }])
+  })
+
+  it('impide reservar más que el stock disponible', async () => {
+    await request(app)
+      .put('/api/cart/items')
+      .send({
+        customerId: 'u-01',
+        storeId: 'casino-los-notros',
+        productId: 'cp-2',
+        quantity: 1,
+      })
+      .expect(400)
+  })
+
+  it('libera una línea y el carrito completo', async () => {
+    await reserve()
+    const removed = await request(app)
+      .delete('/api/cart/items/cp-4?customerId=u-01&storeId=casino-los-notros')
+      .expect(200)
+    expect(removed.body.cart).toEqual([])
+
+    await reserve({ quantity: 1 })
+    const cleared = await request(app)
+      .delete('/api/cart?customerId=u-01&storeId=casino-los-notros')
+      .expect(200)
+    expect(cleared.body.cart).toEqual([])
+  })
+})
+
 describe('API · compras', () => {
-  it('registra una compra y descuenta stock', async () => {
+  it('registra una compra reservada sin descontar stock', async () => {
     const before = await request(app).get('/api/bootstrap')
     const product = before.body.products.find((entry) => entry.id === 'cp-4')
 
+    await reserve()
     const response = await request(app)
       .post('/api/orders')
       .send(orderBody)
@@ -58,35 +105,31 @@ describe('API · compras', () => {
     expect(response.body.order.total).toBe(product.price * 2)
     expect(
       response.body.products.find((entry) => entry.id === 'cp-4').stock,
-    ).toBe(product.stock - 2)
+    ).toBe(product.stock)
   })
 
-  it('rechaza una compra sin stock suficiente', async () => {
-    const response = await request(app)
-      .post('/api/orders')
-      .send({
-        ...orderBody,
-        items: [{ productId: 'cp-2', quantity: 1 }],
-      })
-      .expect(400)
+  it('descuenta stock al marcar el pedido como entregado', async () => {
+    const before = await request(app).get('/api/bootstrap')
+    const product = before.body.products.find((entry) => entry.id === 'cp-4')
 
-    expect(response.body.error).toMatch(/Stock insuficiente/)
-  })
-
-  it('marca un pedido como entregado', async () => {
+    await reserve()
     const created = await request(app).post('/api/orders').send(orderBody)
     const response = await request(app)
       .patch(`/api/orders/${created.body.order.id}/complete`)
       .expect(200)
 
     expect(response.body.order.status).toBe('retirado')
+    expect(
+      response.body.products.find((entry) => entry.id === 'cp-4').stock,
+    ).toBe(product.stock - 2)
   })
 
-  it('cancela un pedido y repone el stock', async () => {
+  it('cancela un pedido sin descontar stock', async () => {
     const before = await request(app).get('/api/bootstrap')
     const product = before.body.products.find((entry) => entry.id === 'cp-4')
-    const created = await request(app).post('/api/orders').send(orderBody)
 
+    await reserve()
+    const created = await request(app).post('/api/orders').send(orderBody)
     const response = await request(app)
       .post(`/api/orders/${created.body.order.id}/cancel`)
       .expect(200)
@@ -95,6 +138,15 @@ describe('API · compras', () => {
     expect(
       response.body.products.find((entry) => entry.id === 'cp-4').stock,
     ).toBe(product.stock)
+  })
+
+  it('rechaza una compra sin reserva de carrito', async () => {
+    const response = await request(app)
+      .post('/api/orders')
+      .send(orderBody)
+      .expect(400)
+
+    expect(response.body.error).toMatch(/carrito está vacío/)
   })
 })
 
@@ -108,6 +160,7 @@ describe('API · productos', () => {
         price: 1200,
         stock: 5,
         category: 'Bebidas',
+        sellos: ['azucares'],
       })
       .expect(201)
 
@@ -115,9 +168,10 @@ describe('API · productos', () => {
 
     const edited = await request(app)
       .patch(`/api/products/${id}`)
-      .send({ name: 'Producto editado', price: 1500, stock: 3 })
+      .send({ name: 'Producto editado', price: 1500, stock: 4 })
       .expect(200)
     expect(edited.body.product.name).toBe('Producto editado')
+    expect(edited.body.product.sellos).toEqual(['azucares'])
 
     const hidden = await request(app)
       .patch(`/api/products/${id}/visibility`)
@@ -131,12 +185,32 @@ describe('API · productos', () => {
       .expect(200)
     expect(
       adjusted.body.products.find((entry) => entry.id === id).stock,
-    ).toBe(2)
+    ).toBe(3)
 
     const deleted = await request(app)
       .delete(`/api/products/${id}`)
       .expect(200)
     expect(deleted.body.products.some((entry) => entry.id === id)).toBe(false)
+  })
+
+  it('bloquea eliminar un producto con reservas', async () => {
+    const created = await request(app)
+      .post('/api/products')
+      .send({
+        storeId: 'casino-los-notros',
+        name: 'Producto reservado',
+        price: 1000,
+        stock: 2,
+      })
+      .expect(201)
+    const id = created.body.product.id
+
+    await reserve({ productId: id, quantity: 1 })
+
+    const response = await request(app)
+      .delete(`/api/products/${id}`)
+      .expect(409)
+    expect(response.body.error).toMatch(/reservas/)
   })
 })
 

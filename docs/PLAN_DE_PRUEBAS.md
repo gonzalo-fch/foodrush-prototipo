@@ -106,6 +106,14 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PT-REP-11 | Repositorio | Ajuste de stock excesivo | Stock nunca queda negativo |
 | PT-REP-12 | Repositorio | Ocultar y eliminar producto | Visibilidad y eliminación correctas |
 | PT-REP-13 | Repositorio | Recrear repositorio | Los cambios persisten en el archivo |
+| PT-REP-14 | Repositorio | Reservar stock en carrito | La disponibilidad baja y queda ligada al cliente |
+| PT-REP-15 | Repositorio | Segundo cliente intenta reservar de más | Se limita a las unidades libres |
+| PT-REP-16 | Repositorio | Quitar o vaciar carrito | Se liberan las reservas |
+| PT-REP-17 | Repositorio | Crear pedido desde reserva | El stock no se descuenta todavía |
+| PT-REP-18 | Repositorio | Entregar pedido | Se descuenta stock y se registra la venta |
+| PT-REP-19 | Repositorio | Cancelar pedido | Se libera la reserva sin descontar stock |
+| PT-REP-20 | Repositorio | Crear producto con sellos | Se guardan y exponen los sellos seleccionados |
+| PT-REP-21 | Repositorio | Eliminar producto con reservas | Se bloquea la operación |
 | PT-API-01 | API | `GET /api/health` | Responde estado y backend |
 | PT-API-02 | API | `GET /api/bootstrap` | Entrega productos, pedidos y movimientos |
 | PT-API-03 | API | `POST /api/orders` | Crea pedido y descuenta stock |
@@ -114,6 +122,10 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PT-API-06 | API | Cancelar pedido | HTTP 200 y stock repuesto |
 | PT-API-07 | API | CRUD de producto | Crear, editar, ocultar, ajustar y eliminar |
 | PT-API-08 | API | Ruta inexistente | HTTP 404 |
+| PT-API-09 | API | Reservar stock vía carrito | Disponibilidad actualizada |
+| PT-API-10 | API | Reserva sin stock suficiente | HTTP 400 |
+| PT-API-11 | API | Liberar línea y carrito | Reservas eliminadas |
+| PT-API-12 | API | Eliminar producto reservado | HTTP 409 |
 | PT-FE-01 | Frontend | Formato CLP | Formato `$3.500` |
 | PT-FE-02 | Frontend | Render de tarjeta de producto | Nombre, unidad y precio visibles |
 | PT-FE-03 | Frontend | Agregar producto con stock | Se invoca `onAdd` |
@@ -129,6 +141,7 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PT-FE-13 | Frontend | Comercio sin sesión | Redirección a login de comercio |
 | PT-FE-14 | Frontend | Comercio autenticado | Acceso permitido |
 | PT-FE-15 | Frontend | Enlace de acceso al panel de comercio | Enlace visible y apunta a `/comercio/login` |
+| PT-FE-16 | Frontend | Separar ventas y devoluciones | Solo pedidos entregados cuentan como ventas |
 
 ### 6.3 Casos manuales
 
@@ -141,6 +154,12 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PM-05 | Diseño responsive | Abrir flujo cliente y comercio en móvil y escritorio | Sin pérdida de funciones |
 | PM-06 | Sin pagos reales | Completar compra ficticia | No se solicita ni procesa un cobro real |
 | PM-07 | Despliegue Docker | Construir y ejecutar la imagen; consultar health y frontend | Contenedor operativo y reproducible |
+| PM-08 | Reservas entre clientes | Reservar 2 de 3 unidades y probar con un segundo cliente | El segundo cliente solo puede reservar 1 |
+| PM-09 | Venta y entrega | Crear pedido y luego entregarlo | Stock se descuenta recién al entregar |
+| PM-10 | Sellos nutricionales | Crear producto con Sodio y Azúcares y abrir su detalle | Ambos sellos visibles |
+| PM-11 | Buscador de comercios | Abrir “Buscar otra ubicación” y filtrar | Listado con imagen, nombre, dirección y filtro |
+| PM-12 | Pago simulado | Abrir formulario de tarjeta | Datos de prueba precargados y aviso visible |
+| PM-13 | Ventas y devoluciones | Revisar Home y Dashboard | Ventas entregadas y devoluciones separadas |
 
 ## 7. Datos de prueba
 

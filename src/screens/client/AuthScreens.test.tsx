@@ -1,23 +1,50 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '../../components/ToastProvider'
+import { api } from '../../lib/api'
+import { AppStoreProvider } from '../../store/AppStore'
 import { ClientStoreProvider } from '../../store/ClientStore'
 import { ClientLogin } from './AuthScreens'
 
+vi.mock('../../lib/api', () => ({
+  api: {
+    bootstrap: vi.fn(),
+    getCart: vi.fn(),
+    setCartItem: vi.fn(),
+    removeCartItem: vi.fn(),
+    clearCart: vi.fn(),
+    createOrder: vi.fn(),
+    addProduct: vi.fn(),
+    updateProduct: vi.fn(),
+    deleteProduct: vi.fn(),
+    setVisibility: vi.fn(),
+    adjustStock: vi.fn(),
+    completeOrder: vi.fn(),
+    cancelOrder: vi.fn(),
+  },
+}))
+
 beforeEach(() => {
   window.localStorage.clear()
+  vi.mocked(api.bootstrap).mockResolvedValue({
+    products: [],
+    orders: [],
+    movements: [],
+  })
 })
 
 describe('ClientLogin', () => {
   it('muestra un enlace al acceso del comercio', () => {
     render(
       <MemoryRouter>
-        <ClientStoreProvider>
-          <ToastProvider>
-            <ClientLogin />
-          </ToastProvider>
-        </ClientStoreProvider>
+        <AppStoreProvider>
+          <ClientStoreProvider>
+            <ToastProvider>
+              <ClientLogin />
+            </ToastProvider>
+          </ClientStoreProvider>
+        </AppStoreProvider>
       </MemoryRouter>,
     )
 

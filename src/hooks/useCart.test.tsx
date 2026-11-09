@@ -1,14 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ClientStoreProvider, useClientStore } from '../store/ClientStore'
-import { AppStoreProvider, useAppStore } from '../store/AppStore'
 import { api } from '../lib/api'
+import { AppStoreProvider } from '../store/AppStore'
+import { ClientStoreProvider } from '../store/ClientStore'
 import { useCart } from './useCart'
 
 vi.mock('../lib/api', () => ({
   api: {
     bootstrap: vi.fn(),
+    getCart: vi.fn(),
+    setCartItem: vi.fn(),
+    removeCartItem: vi.fn(),
+    clearCart: vi.fn(),
     createOrder: vi.fn(),
     addProduct: vi.fn(),
     updateProduct: vi.fn(),
@@ -29,6 +32,8 @@ const products = [
     image: '/products/cart-ensalada.png',
     visible: true,
     stock: 12,
+    reserved: 2,
+    available: 10,
   },
   {
     id: 'cp-8',
@@ -38,42 +43,41 @@ const products = [
     image: '/products/cafe-clean.png',
     visible: true,
     stock: 15,
+    reserved: 0,
+    available: 15,
   },
 ]
 
 function CartProbe() {
-  const { products: catalog } = useAppStore()
-  const { clearCart, addToCart } = useClientStore()
   const { subtotal, count } = useCart()
 
   return (
     <>
-      <output data-testid="products">{catalog.length}</output>
       <output data-testid="subtotal">{subtotal}</output>
       <output data-testid="count">{count}</output>
-      <button type="button" onClick={() => clearCart()}>
-        vaciar
-      </button>
-      <button type="button" onClick={() => addToCart('cp-4', 2)}>
-        agregar
-      </button>
     </>
   )
 }
 
 beforeEach(() => {
   window.localStorage.clear()
+  window.localStorage.setItem(
+    'foodrush-client-v2',
+    JSON.stringify({ currentUserId: 'u-01' }),
+  )
+  vi.mocked(api.bootstrap).mockResolvedValue({
+    products,
+    orders: [],
+    movements: [],
+  })
+  vi.mocked(api.getCart).mockResolvedValue({
+    products,
+    cart: [{ productId: 'cp-4', quantity: 2 }],
+  })
 })
 
 describe('useCart', () => {
   it('calcula subtotal y cantidad con los productos del comercio', async () => {
-    vi.mocked(api.bootstrap).mockResolvedValue({
-      products,
-      orders: [],
-      movements: [],
-    })
-
-    const user = userEvent.setup()
     render(
       <AppStoreProvider>
         <ClientStoreProvider>
@@ -82,14 +86,6 @@ describe('useCart', () => {
       </AppStoreProvider>,
     )
 
-    await waitFor(() =>
-      expect(screen.getByTestId('products')).toHaveTextContent('2'),
-    )
-
-    await user.click(screen.getByRole('button', { name: 'vaciar' }))
-    expect(screen.getByTestId('subtotal')).toHaveTextContent('0')
-
-    await user.click(screen.getByRole('button', { name: 'agregar' }))
     await waitFor(() =>
       expect(screen.getByTestId('subtotal')).toHaveTextContent('7000'),
     )
