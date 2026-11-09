@@ -25,6 +25,7 @@ dist-ssr
 
 # Local-only files (mockup exports, screenshots, etc.)
 local/
+docs/VERSION_REAL.md
 
 # Environment and local backend data
 .env

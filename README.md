@@ -155,7 +155,6 @@ El acceso del comercio está en `/comercio/login`.
 ## Documentación
 
 - `docs/DESPLIEGUE.md`: instalación, Firestore, Docker y despliegue.
-- `docs/VERSION_REAL.md`: checklist para pasar del prototipo a la versión real.
 - `docs/PLAN_DE_PRUEBAS.md`: alcance y casos de prueba.
 - `docs/REGISTRO_DE_PRUEBAS.md`: resultados, cobertura y evidencia.
 

@@ -135,7 +135,7 @@ Comando: `npm run test:e2e`. Resultado: **6/6 aprobadas**.
 - Los warnings de lint corresponden a reglas de Fast Refresh y pureza de React; no bloquean el build.
 - La autenticación sigue siendo simulada: no hay tokens ni autorización real de API.
 - Las contraseñas se mantienen sin hash en el prototipo; la versión real debe usar autenticación segura.
-- El checklist de mejoras para la versión real está en `docs/VERSION_REAL.md`.
+- El checklist interno de mejoras para la versión real se mantiene fuera del repositorio público.
 
 ## 9. Conclusión
 
@@ -152,4 +152,4 @@ Pendientes para el cierre del proyecto:
 
 1. Verificar persistencia con un proyecto Firestore real.
 2. Incorporar los casos de aceptación de usabilidad con usuarios simulados.
-3. Implementar los puntos de `docs/VERSION_REAL.md` antes de una puesta en producción.
+3. Implementar el checklist interno de versión real antes de una puesta en producción.
