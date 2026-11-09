@@ -140,6 +140,7 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PM-04 | Persistencia tras reinicio | Crear datos; reiniciar el servidor | Los datos se conservan |
 | PM-05 | Diseño responsive | Abrir flujo cliente y comercio en móvil y escritorio | Sin pérdida de funciones |
 | PM-06 | Sin pagos reales | Completar compra ficticia | No se solicita ni procesa un cobro real |
+| PM-07 | Despliegue Docker | Construir y ejecutar la imagen; consultar health y frontend | Contenedor operativo y reproducible |
 
 ## 7. Datos de prueba
 

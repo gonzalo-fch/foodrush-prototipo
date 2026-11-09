@@ -85,6 +85,7 @@ Reporte generado en `coverage/index.html`.
 | PM-04 | Persistencia | Prueba automatizada de recreación del repositorio con archivo temporal | Aprobado en backend local |
 | PM-05 | Responsive | Revisión visual previa con capturas en `local/screenshots` | Pendiente de repetir en entrega final |
 | PM-06 | Sin pagos reales | Compra ficticia registrada con método de pago simulado | Aprobado |
+| PM-07 | Despliegue Docker | `docker build`, contenedor con `DATA_BACKEND=file`, healthcheck, bootstrap y SPA | Aprobado |
 
 ## 6. Defectos encontrados y corregidos
 
