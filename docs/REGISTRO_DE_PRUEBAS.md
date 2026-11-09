@@ -31,8 +31,8 @@ npm run lint
 | Pruebas fallidas | 0 |
 | Build de producción | Correcto |
 | Lint | Sin errores (solo advertencias de React) |
-| Cobertura de sentencias | 68,09 % |
-| Cobertura de líneas | 71,15 % |
+| Cobertura de sentencias | 68,05 % |
+| Cobertura de líneas | 71,11 % |
 | Cobertura de ramas | 56,55 % |
 
 Salida resumida:
@@ -75,9 +75,9 @@ Reporte generado en `coverage/index.html`.
 | `fileRepository.js` | 86,21 % | 68,39 % | 97,33 % | 90,55 % |
 | `seed.js` | 95,65 % | 59,09 % | 100 % | 94,73 % |
 | `ProductCard.tsx` | 60 % | 100 % | 50 % | 60 % |
-| Stores del frontend | 56,43 % | 53,84 % | 43,63 % | 59,11 % |
+| Stores del frontend | 56,27 % | 53,84 % | 43,63 % | 58,92 % |
 | `AuthScreens.tsx` | 7,36 % | 1,61 % | 4,00 % | 7,95 % |
-| **Total** | **68,09 %** | **56,55 %** | **65,77 %** | **71,15 %** |
+| **Total** | **68,05 %** | **56,55 %** | **65,77 %** | **71,11 %** |
 
 ## 5. Pruebas E2E
 
