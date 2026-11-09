@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.git
+.github
+.firebase
+.env
+.env.*
+!.env.example
+local
+server/.data
+*.log
+firestore-debug.log
+ui-debug.log

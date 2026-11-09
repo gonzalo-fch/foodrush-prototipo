@@ -80,12 +80,22 @@ npm run server
 
 ## Producción
 
+Con Node.js:
+
 ```bash
 npm run build
 npm start
 ```
 
+Con Docker:
+
+```bash
+docker compose up -d --build
+```
+
 El servidor Express sirve `dist/` y la API en el puerto configurado (`PORT`, por defecto `3001`).
+
+Guía completa de instalación, Firestore, Docker y despliegue en la nube: `docs/DESPLIEGUE.md`.
 
 ## Pruebas
 
@@ -134,6 +144,12 @@ El acceso del comercio está en `/comercio/login`.
 | DELETE | `/api/products/:id` | Eliminar producto |
 | PATCH | `/api/products/:id/visibility` | Activar u ocultar producto |
 | POST | `/api/products/:id/stock` | Ajustar stock |
+
+## Documentación
+
+- `docs/DESPLIEGUE.md`: instalación, Firestore, Docker y despliegue.
+- `docs/PLAN_DE_PRUEBAS.md`: alcance y casos de prueba.
+- `docs/REGISTRO_DE_PRUEBAS.md`: resultados, cobertura y evidencia.
 
 ## Alcance
 
