@@ -245,8 +245,8 @@ export function AddProductPage() {
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    if (file.size > 1_500_000) {
-      showToast('La imagen no puede superar 1.5 MB', 'error')
+    if (file.size > 600_000) {
+      showToast('La imagen no puede superar 600 KB', 'error')
       return
     }
 
@@ -431,8 +431,8 @@ export function EditProductPage() {
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    if (file.size > 1_500_000) {
-      showToast('La imagen no puede superar 1.5 MB', 'error')
+    if (file.size > 600_000) {
+      showToast('La imagen no puede superar 600 KB', 'error')
       return
     }
 

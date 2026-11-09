@@ -14,7 +14,7 @@ export function useCheckout() {
   const { showToast } = useToast()
   const { open } = getStoreSettings(selectedStore.id)
 
-  return (paymentMethod: string) => {
+  return async (paymentMethod: string) => {
     if (!currentUser) {
       showToast('Debes iniciar sesión para comprar', 'error')
       navigate('/login')
@@ -33,7 +33,7 @@ export function useCheckout() {
     }
 
     try {
-      const order = createOrder({
+      const order = await createOrder({
         customer: currentUser.name,
         customerId: currentUser.id,
         store: selectedStore.name,

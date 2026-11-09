@@ -25,3 +25,14 @@ dist-ssr
 
 # Local-only files (mockup exports, screenshots, etc.)
 local/
+
+# Environment and local backend data
+.env
+.env.local
+server/.data/
+
+# Firebase emulator artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
