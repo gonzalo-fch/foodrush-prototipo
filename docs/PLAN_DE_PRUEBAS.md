@@ -67,6 +67,7 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 - Cobertura V8 de Vitest
 - Node.js 22.20.0
 - Chrome Headless
+- Playwright (E2E)
 
 ## 6. Casos de prueba
 
@@ -80,7 +81,9 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | Restricciones de inventario | PT-REP-03, PT-REP-04, PT-REP-05, PT-REP-11, PT-API-04 | RF-08, RF-09, RF-10, RN-01, RN-02 |
 | Coherencia y precio | PT-REP-02, PT-REP-06, PT-REP-08, PT-REP-09, PT-REP-10 | RF-09, RF-11, RF-12, RF-13, RN-05 |
 | Permisos por rol | PT-FE-11, PT-FE-12, PT-FE-13, PT-FE-14, PT-REP-05 | RF-01, RF-02, RNF-04 |
-| Persistencia | PT-REP-13, PM-04 | RF-21, RNF-06 |
+| Persistencia | PT-REP-13, PM-04, PE-05 | RF-21, RNF-06 |
+| Cuentas y ajustes compartidos | PT-AUTH-01 a PT-AUTH-03, PE-05, PE-06 | RF-01, RF-02, RNF-04 |
+| Recorridos completos | PE-01 a PE-06 | Flujo principal |
 | Manejo de errores | PT-DOM-02, PT-DOM-03, PT-DOM-04, PT-API-04, PT-API-08 | RNF-07 |
 | Multidispositivo | PM-01, PM-02 | RF-02, RNF-06 |
 | Firestore | PM-03 | RF-09, RF-21, RNF-06 |
@@ -126,6 +129,9 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PT-API-10 | API | Reserva sin stock suficiente | HTTP 400 |
 | PT-API-11 | API | Liberar línea y carrito | Reservas eliminadas |
 | PT-API-12 | API | Eliminar producto reservado | HTTP 409 |
+| PT-AUTH-01 | API/Repositorio | Login y registro de cliente | Usuario sin contraseña |
+| PT-AUTH-02 | API/Repositorio | Login de comercio y cambio de contraseña | Acceso y cambio correctos |
+| PT-AUTH-03 | API/Repositorio | Ajustes de comercio compartidos | Cambios visibles en otra consulta |
 | PT-FE-01 | Frontend | Formato CLP | Formato `$3.500` |
 | PT-FE-02 | Frontend | Render de tarjeta de producto | Nombre, unidad y precio visibles |
 | PT-FE-03 | Frontend | Agregar producto con stock | Se invoca `onAdd` |
@@ -143,7 +149,18 @@ Las pruebas automatizadas se ejecutan con **Vitest** y no dependen de credencial
 | PT-FE-15 | Frontend | Enlace de acceso al panel de comercio | Enlace visible y apunta a `/comercio/login` |
 | PT-FE-16 | Frontend | Separar ventas y devoluciones | Solo pedidos entregados cuentan como ventas |
 
-### 6.3 Casos manuales
+### 6.3 Casos E2E automatizados
+
+| ID | Flujo | Resultado esperado |
+|---|---|---|
+| PE-01 | Login de cliente y catálogo | Catálogo visible |
+| PE-02 | Reserva y checkout ficticio | Compra confirmada con QR |
+| PE-03 | Entrega de pedido | Stock descontado al entregar |
+| PE-04 | Layout escritorio/móvil | Sidebar y navegación correctas |
+| PE-05 | Cuenta de cliente compartida | Login funciona en otro navegador |
+| PE-06 | Ajustes de comercio compartidos | Cliente ve el comercio cerrado |
+
+### 6.4 Casos manuales
 
 | ID | Caso | Pasos | Resultado esperado |
 |---|---|---|---|

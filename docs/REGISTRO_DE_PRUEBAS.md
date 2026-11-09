@@ -25,21 +25,22 @@ npm run lint
 
 | Actividad | Resultado |
 |---|---|
-| Archivos de prueba | 11 |
-| Pruebas ejecutadas | 53 |
-| Pruebas aprobadas | 53 |
+| Archivos de prueba | 11 Vitest + 1 Playwright |
+| Pruebas ejecutadas | 60 unitarias/integración + 6 E2E |
+| Pruebas aprobadas | 66 |
 | Pruebas fallidas | 0 |
 | Build de producción | Correcto |
 | Lint | Sin errores (solo advertencias de React) |
-| Cobertura de sentencias | 65,01 % |
-| Cobertura de líneas | 67,85 % |
-| Cobertura de ramas | 54,38 % |
+| Cobertura de sentencias | 68,09 % |
+| Cobertura de líneas | 71,15 % |
+| Cobertura de ramas | 56,55 % |
 
 Salida resumida:
 
 ```text
 Test Files  11 passed (11)
-Tests       53 passed (53)
+Tests       60 passed (60)
+Playwright  6 passed (6)
 ```
 
 ## 3. Detalle por suite
@@ -47,8 +48,8 @@ Tests       53 passed (53)
 | Suite | Archivo | Pruebas | Estado |
 |---|---|---|---|
 | Dominio | `server/__tests__/domain.test.js` | 11 | Aprobadas |
-| Repositorio de archivos | `server/__tests__/fileRepository.test.js` | 14 | Aprobadas |
-| API REST | `server/__tests__/api.test.js` | 12 | Aprobadas |
+| Repositorio de archivos | `server/__tests__/fileRepository.test.js` | 18 | Aprobadas |
+| API REST | `server/__tests__/api.test.js` | 15 | Aprobadas |
 | Formato monetario | `src/lib/format.test.ts` | 1 | Aprobada |
 | Tarjeta de producto | `src/features/catalog/ProductCard.test.tsx` | 3 | Aprobadas |
 | Carrito del cliente | `src/store/ClientStore.test.tsx` | 2 | Aprobadas |
@@ -58,7 +59,9 @@ Tests       53 passed (53)
 | Acceso al panel de comercio | `src/screens/client/AuthScreens.test.tsx` | 1 | Aprobada |
 | Separación ventas/devoluciones | `src/lib/orders.test.ts` | 2 | Aprobadas |
 
-> Los totales de esta tabla agrupan los casos descritos en el plan. Vitest contabiliza 53 pruebas efectivas.
+> Las pruebas de autenticación y ajustes compartidos también están cubiertas en `server/__tests__/fileRepository.test.js` y `server/__tests__/api.test.js`.
+
+> Los totales de esta tabla agrupan los casos descritos en el plan. Vitest contabiliza 60 pruebas efectivas.
 
 ## 4. Cobertura
 
@@ -66,17 +69,32 @@ Reporte generado en `coverage/index.html`.
 
 | Archivo / grupo | Sentencias | Ramas | Funciones | Líneas |
 |---|---|---|---|---|
-| Backend (`server`) | 88,50 % | 70,08 % | 97,05 % | 92,03 % |
-| `app.js` | 91,83 % | 45,83 % | 95 % | 91,66 % |
-| `domain.js` | 91,30 % | 88,09 % | 100 % | 100 % |
-| `fileRepository.js` | 86,86 % | 69,73 % | 96,87 % | 90,61 % |
-| `seed.js` | 94,11 % | 62,50 % | 100 % | 93,33 % |
+| Backend (`server`) | 87,13 % | 67,77 % | 97,65 % | 91,39 % |
+| `app.js` | 93,44 % | 45,83 % | 96,15 % | 93,33 % |
+| `domain.js` | 82,89 % | 77,41 % | 100 % | 91,93 % |
+| `fileRepository.js` | 86,21 % | 68,39 % | 97,33 % | 90,55 % |
+| `seed.js` | 95,65 % | 59,09 % | 100 % | 94,73 % |
 | `ProductCard.tsx` | 60 % | 100 % | 50 % | 60 % |
-| Stores del frontend | 52,29 % | 49,01 % | 44,33 % | 55,15 % |
+| Stores del frontend | 56,43 % | 53,84 % | 43,63 % | 59,11 % |
 | `AuthScreens.tsx` | 7,36 % | 1,61 % | 4,00 % | 7,95 % |
-| **Total** | **65,01 %** | **54,38 %** | **63,05 %** | **67,85 %** |
+| **Total** | **68,09 %** | **56,55 %** | **65,77 %** | **71,15 %** |
 
-## 5. Evidencia manual
+## 5. Pruebas E2E
+
+Ejecución con Playwright/Chromium, servidor de producción en el puerto 3100 y archivo de datos aislado.
+
+| ID | Flujo | Resultado |
+|---|---|---|
+| PE-01 | Login de cliente y catálogo | Aprobado |
+| PE-02 | Reserva y checkout ficticio | Aprobado |
+| PE-03 | Entrega y descuento de stock | Aprobado |
+| PE-04 | Layout de escritorio y móvil | Aprobado |
+| PE-05 | Cuenta compartida entre navegadores | Aprobado |
+| PE-06 | Ajustes de comercio compartidos | Aprobado |
+
+Comando: `npm run test:e2e`. Resultado: **6/6 aprobadas**.
+
+## 6. Evidencia manual
 
 | ID | Caso | Evidencia ejecutada | Resultado |
 |---|---|---|---|
@@ -84,7 +102,7 @@ Reporte generado en `coverage/index.html`.
 | PM-02 | Aislamiento por comercio | Login con `admin@casinoaraucarias.cl`; el panel mostró su comercio y sus pedidos | Aprobado |
 | PM-03 | Firestore Emulator | Bootstrap con 24 productos, 11 pedidos y 21 movimientos; compra, cancelación y CRUD de producto | Aprobado |
 | PM-04 | Persistencia | Prueba automatizada de recreación del repositorio con archivo temporal | Aprobado en backend local |
-| PM-05 | Responsive | Revisión visual previa con capturas en `local/screenshots` | Pendiente de repetir en entrega final |
+| PM-05 | Responsive | Verificado con Playwright a 1440 px y 390 px | Aprobado |
 | PM-06 | Sin pagos reales | Compra ficticia registrada con método de pago simulado | Aprobado |
 | PM-07 | Despliegue Docker | `docker build`, contenedor con `DATA_BACKEND=file`, healthcheck, bootstrap y SPA | Aprobado |
 | PM-08 | Reservas de stock | Stock 3: cliente A reserva 2, cliente B solo puede reservar 1 | Aprobado |
@@ -94,8 +112,10 @@ Reporte generado en `coverage/index.html`.
 | PM-12 | Pago simulado | Formulario con datos de prueba y aviso de no ingresar datos reales | Aprobado |
 | PM-13 | Ventas y devoluciones | Home y dashboard muestran ventas entregadas y devoluciones por separado | Aprobado |
 | PM-14 | Layout escritorio comercio | A 1440 px se muestra sidebar y contenido ampliado; a 390 px se oculta y aparece navegación inferior | Aprobado |
+| PM-15 | Cuenta de cliente compartida | Registro en un navegador y login en otro contexto con la misma cuenta | Aprobado |
+| PM-16 | Ajustes de comercio compartidos | Comercio cierra el local y el cliente ve el bloqueo al comprar | Aprobado |
 
-## 6. Defectos encontrados y corregidos
+## 7. Defectos encontrados y corregidos
 
 | ID | Defecto | Corrección | Estado |
 |---|---|---|---|
@@ -107,26 +127,29 @@ Reporte generado en `coverage/index.html`.
 | D-06 | Eliminar producto rompía la reposición de pedidos pendientes | Se bloquea la eliminación con reservas o pedidos pendientes | Corregido |
 | D-07 | Precios y tiendas simulados en “También disponible en” | Se usan precios reales de productos en tiendas creadas | Corregido |
 
-## 7. Observaciones
+## 8. Observaciones
 
 - La prueba de Firestore se realizó con el emulador, no con un proyecto Firebase productivo.
 - La persistencia en Firestore se verificó dentro del emulador; la prueba de reinicio con Firestore real queda pendiente para el despliegue.
 - No se procesaron pagos reales.
 - Los warnings de lint corresponden a reglas de Fast Refresh y pureza de React; no bloquean el build.
+- La autenticación sigue siendo simulada: no hay tokens ni autorización real de API.
+- Las contraseñas se mantienen sin hash en el prototipo; la versión real debe usar autenticación segura.
+- El checklist de mejoras para la versión real está en `docs/VERSION_REAL.md`.
 
-## 8. Conclusión
+## 9. Conclusión
 
 El OE-05 queda respaldado con:
 
 - plan de pruebas formal;
-- 53 pruebas automatizadas aprobadas;
-- cobertura de backend superior al 89 % en sentencias;
+- 60 pruebas Vitest y 6 pruebas Playwright aprobadas;
+- cobertura de backend de 87,13 % en sentencias;
 - evidencia manual de compartición de datos entre sesiones;
 - verificación del flujo principal con Firestore Emulator;
 - ejecución reproducible mediante `npm test` y CI.
 
 Pendientes para el cierre del proyecto:
 
-1. Repetir la prueba manual responsive en la versión final.
-2. Verificar persistencia con un proyecto Firestore real.
-3. Incorporar los casos de aceptación de usabilidad con usuarios simulados.
+1. Verificar persistencia con un proyecto Firestore real.
+2. Incorporar los casos de aceptación de usabilidad con usuarios simulados.
+3. Implementar los puntos de `docs/VERSION_REAL.md` antes de una puesta en producción.

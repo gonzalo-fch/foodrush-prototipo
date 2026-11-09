@@ -107,6 +107,8 @@ Guía completa de instalación, Firestore, Docker y despliegue en la nube: `docs
 ```bash
 npm test
 npm run test:coverage
+npx playwright install chromium
+npm run test:e2e
 ```
 
 - Plan de pruebas: `docs/PLAN_DE_PRUEBAS.md`
@@ -153,11 +155,14 @@ El acceso del comercio está en `/comercio/login`.
 ## Documentación
 
 - `docs/DESPLIEGUE.md`: instalación, Firestore, Docker y despliegue.
+- `docs/VERSION_REAL.md`: checklist para pasar del prototipo a la versión real.
 - `docs/PLAN_DE_PRUEBAS.md`: alcance y casos de prueba.
 - `docs/REGISTRO_DE_PRUEBAS.md`: resultados, cobertura y evidencia.
 
 ## Alcance
 
 - No se procesan pagos reales.
-- La autenticación y los roles son simulados.
+- La autenticación y los roles son simulados; no hay tokens ni autorización real de API.
+- Las cuentas de cliente y los ajustes de comercio se comparten mediante la API.
+- Las contraseñas se mantienen como parte de la simulación; la versión real debe usar hash y autenticación real.
 - Las imágenes de producto se guardan como data URL y están limitadas a 600 KB.
